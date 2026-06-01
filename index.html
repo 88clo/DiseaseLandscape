@@ -99,13 +99,13 @@ h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
 .theme-btn:hover{background:var(--surface-2);color:var(--text)}
 
 /* ── Home view ─────────────────────────────────────── */
-#home{padding:3rem 2rem 4rem}
-.home-hero{margin-bottom:2.5rem}
-.home-hero h1{font-family:var(--font-display);font-size:var(--text-2xl);letter-spacing:-0.02em;margin-bottom:0.5rem}
-.home-hero p{color:var(--muted);font-size:var(--text-sm);max-width:60ch}
-.stats-row{display:flex;gap:2rem;margin-top:1rem}
+#home{padding:1.5rem 2rem 2rem}
+.home-hero{margin-bottom:1.1rem}
+.home-hero h1{font-family:var(--font-display);font-size:var(--text-xl);letter-spacing:-0.02em;margin-bottom:0.25rem}
+.home-hero p{color:var(--muted);font-size:var(--text-xs);max-width:70ch}
+.stats-row{display:flex;gap:1.75rem;margin-top:0.6rem}
 .stat{display:flex;flex-direction:column}
-.stat-num{font-size:1.25rem;font-weight:700;color:var(--accent);line-height:1}
+.stat-num{font-size:1.05rem;font-weight:700;color:var(--accent);line-height:1}
 .stat-label{font-size:var(--text-xs);color:var(--muted);margin-top:0.2rem}
 
 .ta-grid{
@@ -249,26 +249,26 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 @media(prefers-color-scheme:dark){:root:not([data-theme]){ --map-bg:#16201f; }}
 
 .home-layout{
-  display:grid; grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);
-  gap:1.75rem; align-items:start;
+  display:grid; grid-template-columns:minmax(0,560px) minmax(280px,1fr);
+  gap:1.5rem; align-items:start;
 }
 @media(max-width:900px){ .home-layout{grid-template-columns:1fr} }
 
 .bodymap-card{
   background:var(--map-bg); border:1px solid var(--divider);
   border-radius:var(--radius-xl); box-shadow:var(--shadow-sm);
-  padding:1rem 0.5rem 0.75rem; position:relative; overflow:hidden;
+  padding:0.75rem 0.5rem 0.5rem; position:relative; overflow:hidden;
 }
 .bodymap-card::before{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(120% 90% at 50% 0%,oklch(from var(--accent) l c h/0.05),transparent 60%);
 }
 .bodymap-title{
-  font-family:var(--font-display); font-size:var(--text-lg);
-  letter-spacing:-0.01em; padding:0.25rem 1rem 0; color:var(--text);
+  font-family:var(--font-display); font-size:var(--text-base);
+  letter-spacing:-0.01em; padding:0.1rem 1rem 0; color:var(--text);
 }
-.bodymap-sub{font-size:var(--text-xs);color:var(--muted);padding:0.1rem 1rem 0.5rem}
-#bodymap-svg{width:100%;height:auto;display:block}
+.bodymap-sub{font-size:var(--text-xs);color:var(--muted);padding:0.05rem 1rem 0.35rem}
+#bodymap-svg{width:100%;max-height:560px;height:auto;display:block;margin:0 auto}
 .anatomy-img{filter:saturate(1.02)}
 [data-theme="dark"] .anatomy-img{filter:saturate(0.92) brightness(0.92)}
 
@@ -282,13 +282,14 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
   fill:var(--surface-2); stroke:var(--border); stroke-width:1;
   transition:fill var(--ease),stroke var(--ease);
 }
+.svg-ta .btn-icon{font-size:15px;pointer-events:none}
 .svg-ta .btn-label{
   fill:var(--text); font-family:var(--font-body); font-weight:600;
-  font-size:12px; pointer-events:none;
+  font-size:11.5px; pointer-events:none;
 }
 .svg-ta .btn-sub{
   fill:var(--muted); font-family:var(--font-body); font-weight:500;
-  font-size:9px; pointer-events:none; letter-spacing:0.01em;
+  font-size:9.5px; pointer-events:none; letter-spacing:0.01em;
 }
 .svg-ta .btn-sub .v{fill:var(--accent-h);font-weight:600}
 .svg-ta:hover .btn-bg{fill:var(--accent-hl);stroke:var(--accent)}
@@ -318,7 +319,7 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 }
 .sys-info{min-width:0;flex:1}
 .sys-name{font-size:var(--text-sm);font-weight:600;color:var(--text);line-height:1.2}
-.sys-meta{font-size:var(--text-xs);color:var(--muted);margin-top:0.2rem;display:flex;flex-wrap:wrap;gap:0.15rem 0.85rem}
+.sys-meta{font-size:var(--text-xs);color:var(--muted);margin-top:0.2rem;display:block}
 .sys-meta b{color:var(--accent-h);font-weight:600}
 .map-legend{font-size:var(--text-xs);color:var(--faint);padding:0.5rem 1rem 0.25rem;text-align:center}
 
@@ -549,38 +550,53 @@ function renderHome(){
 
 function renderBodyMap(){
   const svg=document.getElementById('bodymap-svg');
-  const PAD=8, BW=150, BH=50;          // button width/height
-  const imgX=(IMGW*1.32 - IMGW)/2 + 78; // center image, leaving side gutters
-  // We expand the viewBox horizontally to fit side buttons.
-  const VBW=IMGW+2*(BW+34), VBH=IMGH;
-  const imgLeft=(VBW-IMGW)/2;
-  const LX=18, RX=VBW-18-BW;
-  let buttons='', connectors='', dots='';
-  for(const o of ORGAN_TAS){
-    if(!taMap[o.ta]) continue;
-    const st=taStats(o.ta);
-    const lines=wrapLabel(o.ta,22);
-    const h=Math.max(BH, 18+lines.length*13+18);
-    const x=o.side==='L'?LX:RX;
-    const y=o.by-h/2;
-    const innerX=o.side==='L'?x+BW:x;
-    const cx=x+BW/2;
-    const ax=imgLeft+o.ax, ay=o.ay;
-    const labStartY=y+15;
-    const tspans=lines.map((ln,i)=>`<tspan x="${cx}" y="${labStartY+i*13}">${esc(ln)}</tspan>`).join('');
-    const subY=y+h-13;
-    buttons+=`<g class="svg-ta" role="listitem" tabindex="0" aria-label="${escAttr(o.ta)}: ${st.inds} indications, ${st.subs} subcategories, total TAM ${fmtTAM(st.tam)}"
-        onclick="showTA('${escAttr(o.ta)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTA('${escAttr(o.ta)}')}">
-      <rect class="btn-bg" x="${x}" y="${y}" width="${BW}" height="${h}" rx="9"/>
-      <text class="btn-label" text-anchor="middle">${tspans}</text>
-      <text class="btn-sub" text-anchor="middle" x="${cx}" y="${subY}"><tspan class="v">${st.inds}</tspan><tspan> ind&#160;·&#160;</tspan><tspan class="v">${st.subs}</tspan><tspan> sub&#160;·&#160;</tspan><tspan class="v">${fmtTAM(st.tam)}</tspan></text>
-    </g>`;
-    const c1x=o.side==='L'?innerX+44:innerX-44;
-    connectors+=`<path class="connector" d="M${innerX} ${o.by} C ${c1x} ${o.by}, ${ax} ${o.by}, ${ax} ${ay}"/>`;
-    dots+=`<circle class="anchor-dot" cx="${ax}" cy="${ay}" r="4"/>`;
+  const VBH=560, IMG_H=540, IMG_TOP=10;
+  const s=IMG_H/IMGH;                 // scale from native image space
+  const IMG_W=IMGW*s;
+  const BW=140, SIDE_GAP=12, EDGE=14;
+  const VBW=Math.round(IMG_W + 2*(BW+SIDE_GAP) + 2*EDGE);
+  const imgLeft=(VBW-IMG_W)/2;
+  const LX=EDGE, RX=VBW-EDGE-BW;
+
+  const left=ORGAN_TAS.filter(o=>o.side==='L' && taMap[o.ta]);
+  const right=ORGAN_TAS.filter(o=>o.side==='R' && taMap[o.ta]);
+  function centers(n){
+    if(n<=1) return [VBH/2];
+    const top=44, bot=VBH-44, arr=[];
+    for(let i=0;i<n;i++) arr.push(top + i*(bot-top)/(n-1));
+    return arr;
   }
+  const lc=centers(left.length), rc=centers(right.length);
+
+  let buttons='', connectors='', dots='';
+  function emit(o, cyc, side){
+    const st=taStats(o.ta);
+    const lines=wrapLabel(o.ta,16);
+    const h=Math.round(30 + lines.length*12.5 + 14);
+    const x=side==='L'?LX:RX, cx=x+BW/2;
+    const y=cyc-h/2;
+    const innerX=side==='L'?x+BW:x;
+    const icon=TA_ICONS[o.ta]||'💊';
+    const nameStart=y+33;
+    const nameTspans=lines.map((ln,i)=>`<tspan x="${cx}" y="${nameStart+i*12.5}">${esc(ln)}</tspan>`).join('');
+    const subY=y+h-9;
+    buttons+=`<g class="svg-ta" role="listitem" tabindex="0" aria-label="${escAttr(o.ta)}: ${st.inds} indications, ${st.subs} subcategories, ${fmtTAM(st.tam)} TAM"
+        onclick="showTA('${escAttr(o.ta)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTA('${escAttr(o.ta)}')}">
+      <rect class="btn-bg" x="${x}" y="${y}" width="${BW}" height="${h}" rx="10"/>
+      <text class="btn-icon" text-anchor="middle" x="${cx}" y="${y+18}">${icon}</text>
+      <text class="btn-label" text-anchor="middle">${nameTspans}</text>
+      <text class="btn-sub" text-anchor="middle" x="${cx}" y="${subY}"><tspan class="v">${st.inds}</tspan> ind&#160;·&#160;<tspan class="v">${st.subs}</tspan> sub&#160;·&#160;<tspan class="v">${fmtTAM(st.tam)}</tspan></text>
+    </g>`;
+    const ax=imgLeft+o.ax*s, ay=IMG_TOP+o.ay*s;
+    const c1x=side==='L'?innerX+38:innerX-38;
+    connectors+=`<path class="connector" d="M${innerX} ${cyc} C ${c1x} ${cyc}, ${ax} ${ay}, ${ax} ${ay}"/>`;
+    dots+=`<circle class="anchor-dot" cx="${ax}" cy="${ay}" r="3.5"/>`;
+  }
+  left.forEach((o,i)=>emit(o,lc[i],'L'));
+  right.forEach((o,i)=>emit(o,rc[i],'R'));
+
   svg.setAttribute('viewBox',`0 0 ${VBW} ${VBH}`);
-  const img=`<image class="anatomy-img" href="${ANATOMY_IMG}" x="${imgLeft}" y="0" width="${IMGW}" height="${IMGH}" preserveAspectRatio="xMidYMid meet"/>`;
+  const img=`<image class="anatomy-img" href="${ANATOMY_IMG}" x="${imgLeft}" y="${IMG_TOP}" width="${IMG_W}" height="${IMG_H}" preserveAspectRatio="xMidYMid meet"/>`;
   svg.innerHTML=connectors+img+dots+buttons;
 }
 
@@ -594,7 +610,7 @@ function renderSystemic(){
       <span class="sys-icon" aria-hidden="true">${icon}</span>
       <span class="sys-info">
         <span class="sys-name">${esc(ta)}</span>
-        <span class="sys-meta"><span><b>${st.inds}</b> indications</span><span><b>${st.subs}</b> subcategories</span><span><b>${fmtTAM(st.tam)}</b> TAM</span></span>
+        <span class="sys-meta"><b>${st.inds}</b> ind · <b>${st.subs}</b> sub · <b>${fmtTAM(st.tam)}</b></span>
       </span>
     </button>`;
   }).join('');
@@ -652,8 +668,9 @@ function renderTable(ta, q){
   const container=document.getElementById('sub-groups');
   let totalVisible=0, gi=0, bodyRows='';
 
-  Object.keys(subs).sort().forEach((sub)=>{
-    let rows=subs[sub];
+  const subKeys=Object.keys(subs).slice().sort((a,b)=>subTAM(subs[b])-subTAM(subs[a]));
+  subKeys.forEach((sub)=>{
+    let rows=subs[sub].slice().sort((x,y)=>(y.tam||0)-(x.tam||0));
     if(ql) rows=rows.filter(r=>
       r.indication.toLowerCase().includes(ql)||
       (r.symptoms||'').toLowerCase().includes(ql)||
