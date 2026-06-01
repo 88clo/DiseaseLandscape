@@ -745,19 +745,56 @@ async function loadData(){
   const wb=XLSX.read(buf,{type:'array'});
   const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+  if(!rows.length) return [];
+
+  // Flexible header matching: normalize to lowercase alphanumerics, then
+  // pick the first column whose normalized name matches any candidate.
+  const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+  const headers=Object.keys(rows[0]);
+  const normMap=headers.map(h=>({h,n:norm(h)}));
+  function pick(cands){
+    for(const c of cands){ const m=normMap.find(x=>x.n===c); if(m) return m.h; }      // exact
+    for(const c of cands){ const m=normMap.find(x=>x.n.includes(c)); if(m) return m.h; } // contains
+    return null;
+  }
+  const COL={
+    ta:        pick(['therapeuticarea','ta']),
+    sub:       pick(['subcategory','subta','sub']),
+    ind:       pick(['indication','disease']),
+    usvol:     pick(['usprevalencepatients','usprevalence','usvolume','usvol','prevalence','volume']),
+    innov:     pick(['innovativetx','innovativepatient','innovativeshare','innovative']),
+    price:     pick(['innovativedrugprice','innovativeprice','drugprice','price']),
+    tam:       pick(['tamm','tam']),
+    symptoms:  pick(['symptoms','symptom']),
+    goal:      pick(['treatmentgoal','goal']),
+    soc:       pick(['1lstandardofcare','1lsoc','standardofcare','soc'])
+  };
+  // 'innovative' alone could match the price column too — make sure innov ≠ price.
+  if(COL.innov && COL.innov===COL.price){
+    const alt=normMap.find(x=>/innovative/.test(x.n) && /(tx|patient|share|%|percent)/.test(x.n) && x.h!==COL.price);
+    COL.innov=alt?alt.h:null;
+  }
+  const get=(r,k)=>COL[k]!=null?r[COL[k]]:'';
   const numify=v=>{ if(v===''||v==null) return null; const n=typeof v==='number'?v:parseFloat(String(v).replace(/[$,%\s]/g,'')); return isNaN(n)?null:n; };
-  return rows.map(r=>({
-    ta:String(r['Therapeutic Area']||'').trim(),
-    subcategory:String(r['Subcategory']||'').trim(),
-    indication:String(r['Indication']||'').trim(),
-    usvol:numify(r['US Prevalence (patients)']),
-    innov:numify(r['Innovative Tx %']),
-    price:numify(r['Innovative Drug Price ($/yr)']),
-    tam:numify(r['TAM ($M)']),
-    symptoms:String(r['Symptoms']||''),
-    goal:String(r['Treatment Goal']||''),
-    soc:String(r['1L Standard of Care']||'')
-  })).filter(r=>r.ta && r.indication);
+
+  return rows.map(r=>{
+    let usvol=numify(get(r,'usvol')), innov=numify(get(r,'innov')), price=numify(get(r,'price')), tam=numify(get(r,'tam'));
+    // Percentages stored as 0–100 instead of 0–1 → normalize to a fraction.
+    if(innov!=null && innov>1.5) innov=innov/100;
+    // TAM ($M) = prevalence × innovative% × price ÷ 1e6. Compute when missing or zero.
+    if((tam==null||tam===0) && usvol!=null && innov!=null && price!=null){
+      tam=usvol*innov*price/1e6;
+    }
+    return {
+      ta:String(get(r,'ta')||'').trim(),
+      subcategory:String(get(r,'sub')||'').trim(),
+      indication:String(get(r,'ind')||'').trim(),
+      usvol, innov, price, tam,
+      symptoms:String(get(r,'symptoms')||''),
+      goal:String(get(r,'goal')||''),
+      soc:String(get(r,'soc')||'')
+    };
+  }).filter(r=>r.ta && r.indication);
 }
 
 function showLoadError(msg){
