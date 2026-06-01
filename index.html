@@ -136,8 +136,8 @@ h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
 .ta-meta{font-size:var(--text-xs);color:var(--muted);margin-top:0.25rem}
 
 /* ── TA Detail view ─────────────────────────────────── */
-#detail{display:none;padding:2rem 2rem 4rem}
-#search-results{display:none;padding:2rem 2rem 4rem}
+#detail{display:none;padding:1rem 2rem 3rem}
+#search-results{display:none;padding:1rem 2rem 3rem}
 .sr-row{cursor:pointer}
 .sr-row .sr-ta-link{display:inline-flex;align-items:center;gap:0.25rem;color:var(--accent);font-weight:600}
 .sr-row .sr-ta-link svg{opacity:0.7}
@@ -146,16 +146,16 @@ h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
 .disease-table.combined.sr-table td{vertical-align:middle}
 .back-btn{
   display:inline-flex;align-items:center;gap:0.4rem;
-  font-size:var(--text-sm);color:var(--muted);margin-bottom:1.5rem;
+  font-size:var(--text-sm);color:var(--muted);margin-bottom:0.75rem;
   transition:color var(--ease);padding:0.25rem 0;
 }
 .back-btn:hover{color:var(--accent)}
-.detail-hero{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--divider)}
-.detail-hero h1{font-family:var(--font-display);font-size:var(--text-xl);letter-spacing:-0.02em}
-.detail-meta{font-size:var(--text-xs);color:var(--muted);margin-top:0.4rem;display:flex;gap:1.5rem}
+.detail-hero{margin-bottom:0.75rem;padding-bottom:0.6rem;border-bottom:1px solid var(--divider)}
+.detail-hero h1{font-family:var(--font-display);font-size:var(--text-lg);letter-spacing:-0.02em}
+.detail-meta{font-size:var(--text-xs);color:var(--muted);margin-top:0.25rem;display:flex;gap:1.25rem}
 
 /* search bar on detail */
-.detail-controls{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.detail-controls{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap}
 .detail-search-wrap{position:relative;flex:1;min-width:180px;max-width:380px}
 .detail-search-wrap svg{position:absolute;left:0.625rem;top:50%;transform:translateY(-50%);color:var(--muted)}
 #detail-search{
@@ -167,6 +167,14 @@ h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
 #detail-search:focus{outline:none;border-color:var(--accent)}
 #detail-search::placeholder{color:var(--faint)}
 .result-count{font-size:var(--text-xs);color:var(--muted);white-space:nowrap}
+.billion-btn{
+  font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;
+  border:1px solid var(--border);border-radius:var(--radius-full,9999px);
+  transition:background var(--ease),color var(--ease),border-color var(--ease);cursor:pointer;
+}
+.billion-btn:hover{border-color:var(--accent);color:var(--accent-h)}
+.billion-btn.active{background:#ffe838;border-color:#e6cc00;color:#3a3000;font-weight:600}
+[data-theme="dark"] .billion-btn.active{background:#a89200;border-color:#c2a900;color:#1a1500}
 
 /* ── Subcategory accordion ───────────────────────────── */
 .sub-group{border:1px solid var(--divider);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:0.75rem;box-shadow:var(--shadow-sm)}
@@ -316,18 +324,18 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .systemic-panel>p{font-size:var(--text-xs);color:var(--muted);margin-bottom:1rem;max-width:none}
 .systemic-list{display:flex;flex-direction:column;gap:1px;background:var(--divider);border:1px solid var(--divider);border-radius:var(--radius-lg);overflow:hidden}
 .sys-card{
-  display:flex;align-items:center;gap:0.85rem;background:var(--surface-2);
-  padding:0.8rem 1rem;cursor:pointer;transition:background var(--ease);text-align:left;width:100%;
+  display:flex;align-items:center;gap:0.7rem;background:var(--surface-2);
+  padding:0.6rem 0.9rem;cursor:pointer;transition:background var(--ease);text-align:left;width:100%;
 }
 .sys-card:hover{background:var(--accent-hl)}
 .sys-card:active{background:var(--accent-hl)}
 .sys-icon{
-  width:2rem;height:2rem;border-radius:var(--radius-md);background:var(--accent-hl);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.95rem;
+  width:1.7rem;height:1.7rem;border-radius:var(--radius-md);background:var(--accent-hl);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.85rem;
 }
 .sys-info{min-width:0;flex:1}
-.sys-name{font-size:var(--text-sm);font-weight:600;color:var(--text);line-height:1.2}
-.sys-meta{font-size:var(--text-xs);color:var(--muted);margin-top:0.2rem;display:block}
+.sys-name{font-size:0.82rem;font-weight:600;color:var(--text);line-height:1.2}
+.sys-meta{font-size:0.7rem;color:var(--muted);margin-top:0.15rem;display:block}
 .sys-meta b{color:var(--accent-h);font-weight:600}
 .map-legend{font-size:var(--text-xs);color:var(--faint);padding:0.5rem 1rem 0.25rem;text-align:center}
 
@@ -341,20 +349,20 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .disease-table.combined .group-row td{padding:0}
 .group-toggle{
   display:flex;align-items:center;gap:0.75rem;width:100%;
-  padding:0.8rem 1.25rem;background:var(--surface);
-  border-top:1px solid var(--divider);cursor:pointer;user-select:none;
+  padding:0.8rem 1.25rem;background:var(--surface-2);
+  border-top:2px solid var(--accent);cursor:pointer;user-select:none;
   transition:background var(--ease);text-align:left;
 }
 .disease-table.combined tbody tr.group-row:first-child .group-toggle{border-top:none}
-.group-toggle:hover{background:var(--surface-2)}
-.group-toggle .sub-name{font-size:var(--text-sm);font-weight:600;color:var(--text)}
+.group-toggle:hover{background:var(--accent-hl)}
+.group-toggle .sub-name{font-size:var(--text-base);font-weight:700;color:var(--accent-h)}
 .group-toggle .sub-badge{
   font-size:var(--text-xs);color:var(--accent);background:var(--accent-hl);
   padding:0.15rem 0.5rem;border-radius:var(--radius-full,9999px);font-weight:500;
 }
 .group-toggle .sub-tam{font-size:var(--text-xs);color:var(--muted);margin-left:0.1rem}
 .group-toggle .sub-tam b{color:var(--accent-h);font-weight:600}
-.group-toggle .chevron{margin-left:auto;color:var(--muted);transition:transform var(--ease),color var(--ease)}
+.group-toggle .chevron{margin-left:auto;color:var(--accent);transition:transform var(--ease),color var(--ease)}
 .group-row.collapsed .chevron{transform:rotate(-90deg)}
 .group-row.collapsed + tr,
 .disease-row.is-hidden{display:none}
@@ -370,11 +378,12 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .disease-table.combined{font-size:0.78rem}
 .disease-table.combined thead th{padding:0.4rem 0.85rem;font-size:0.66rem}
 .disease-table.combined td{padding:0.3rem 0.85rem;line-height:1.3}
-.disease-table.combined .td-indication{font-weight:500;min-width:180px}
-.disease-table.combined .group-toggle{padding:0.45rem 0.95rem}
-.disease-table.combined .group-toggle .sub-name{font-size:0.82rem}
+.disease-table.combined .disease-row:not(.hi-yes):not(.hi-no) td{background:var(--surface)}
+.disease-table.combined .td-indication{font-weight:500;min-width:170px}
+.disease-table.combined .group-toggle{padding:0.6rem 1rem}
+.disease-table.combined .group-toggle .sub-name{font-size:0.98rem}
 .disease-table.combined .group-toggle .sub-badge{font-size:0.66rem;padding:0.1rem 0.4rem}
-.disease-table.combined .group-toggle .sub-tam{font-size:0.7rem}
+.disease-table.combined .group-toggle .sub-tam{font-size:0.72rem}
 
 /* new content columns */
 .td-age{white-space:nowrap;color:var(--text);text-align:center;font-variant-numeric:tabular-nums}
@@ -481,6 +490,7 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
     <span class="result-count" id="result-count"></span>
     <button id="expand-all-btn" onclick="expandAll()" style="font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-full,9999px)">Expand all</button>
     <button id="collapse-all-btn" onclick="collapseAll()" style="font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-full,9999px)">Collapse all</button>
+    <button id="billion-btn" class="billion-btn" onclick="toggleBillion()" aria-pressed="false">TAM &gt; $1B only</button>
   </div>
   <div id="sub-groups"></div>
 </section>
@@ -703,6 +713,9 @@ function hideAllViews(){
 }
 function showTA(ta, initialSearch=''){
   currentTA=ta;
+  billionOnly=false;
+  const bb=document.getElementById('billion-btn');
+  if(bb){ bb.classList.remove('active'); bb.setAttribute('aria-pressed','false'); }
   hideAllViews();
   document.getElementById('home-search-wrap').style.visibility='hidden';
   document.getElementById('detail').style.display='block';
@@ -784,6 +797,7 @@ function renderSearchResults(q){
 }
 
 // ── Combined collapsible table ─────────────────────────
+let billionOnly=false;
 function renderTable(ta, q){
   const subs=taMap[ta].subs;
   const ql=(q||'').toLowerCase();
@@ -793,18 +807,19 @@ function renderTable(ta, q){
   const subKeys=Object.keys(subs).slice().sort((a,b)=>subTAM(subs[b])-subTAM(subs[a]));
   subKeys.forEach((sub)=>{
     let rows=subs[sub].slice().sort((x,y)=>(y.tam||0)-(x.tam||0));
+    if(billionOnly) rows=rows.filter(r=>(r.tam||0)>1000);
     if(ql) rows=rows.filter(r=>
       r.indication.toLowerCase().includes(ql)||
       (r.symptoms||'').toLowerCase().includes(ql)||
       (r.txgoal||'').toLowerCase().includes(ql)||
       (r.efficacy||'').toLowerCase().includes(ql)||
       (r.age||'').toLowerCase().includes(ql));
-    if(ql && rows.length===0) return;
+    if((ql||billionOnly) && rows.length===0) return;
     totalVisible+=rows.length;
-    const isOpen = ql || gi<3;
+    const isOpen = ql || billionOnly || gi<3;
     const groupId=gi;
     bodyRows+=`<tr class="group-row${isOpen?'':' collapsed'}" data-group="${groupId}">
-      <td colspan="6">
+      <td colspan="10">
         <div class="group-toggle" role="button" tabindex="0" aria-expanded="${isOpen}"
           onclick="toggleGroup(${groupId})"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGroup(${groupId})}">
@@ -820,6 +835,10 @@ function renderTable(ta, q){
       const dash=v=>v?(ql?highlight(esc(v),ql):esc(v)):'<span class="dash">—</span>';
       return `<tr class="disease-row${isOpen?'':' is-hidden'}${r.hi?' '+r.hi:''}" data-group="${groupId}">
       <td class="td-indication">${ql?highlight(esc(r.indication),ql):esc(r.indication)}</td>
+      <td class="td-num">${fmtCount(r.usvol)}</td>
+      <td class="td-num">${fmtPct(r.innov)}</td>
+      <td class="td-num">${fmtPrice(r.price)}</td>
+      <td class="td-num td-tam">${fmtTAM(r.tam)}</td>
       <td class="td-age">${dash(r.age)}</td>
       <td class="td-text">${dash(r.symptoms)}</td>
       <td class="td-text">${dash(r.txgoal)}</td>
@@ -830,22 +849,28 @@ function renderTable(ta, q){
   });
 
   if(gi===0){
-    container.innerHTML='<div class="no-results"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><strong>No results found</strong><span>Try a different search term.</span></div>';
+    const msg=billionOnly?'No indications with TAM over $1B'+(ql?' match your search.':' in this area.'):'Try a different search term.';
+    container.innerHTML='<div class="no-results"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><strong>No results found</strong><span>'+msg+'</span></div>';
   } else {
     container.innerHTML=`<div class="combined-wrap"><div class="combined-scroll">
       <table class="disease-table combined" aria-label="${escAttr(ta)} diseases">
         <thead><tr>
-          <th style="min-width:180px">Indication</th>
+          <th style="min-width:170px">Indication</th>
+          <th class="th-num" style="min-width:100px">US Prevalence</th>
+          <th class="th-num" style="min-width:95px">% Innovative Tx</th>
+          <th class="th-num" style="min-width:95px">Price</th>
+          <th class="th-num" style="min-width:85px">TAM</th>
           <th style="min-width:90px">Age of Onset/Dx</th>
-          <th style="min-width:300px">Symptoms</th>
-          <th style="min-width:300px">Treatment Goal</th>
-          <th style="min-width:300px">Efficacy Benchmark</th>
+          <th style="min-width:280px">Symptoms</th>
+          <th style="min-width:280px">Treatment Goal</th>
+          <th style="min-width:280px">Efficacy Benchmark</th>
           <th style="min-width:60px">&gt;$1B</th>
         </tr></thead>
         <tbody>${bodyRows}</tbody>
       </table></div></div>`;
   }
-  document.getElementById('result-count').textContent=ql?`${totalVisible} results for "${q}"`:`${totalVisible} indications`;
+  const suffix=billionOnly?' with TAM > $1B':'';
+  document.getElementById('result-count').textContent=ql?`${totalVisible} results for "${q}"${suffix}`:`${totalVisible} indications${suffix}`;
 }
 
 function toggleGroup(id){
@@ -870,6 +895,13 @@ function collapseAll(){
     const id=gr.getAttribute('data-group');
     document.querySelectorAll('.disease-row[data-group="'+id+'"]').forEach(r=>r.classList.add('is-hidden'));
   });
+}
+function toggleBillion(){
+  billionOnly=!billionOnly;
+  const btn=document.getElementById('billion-btn');
+  btn.classList.toggle('active',billionOnly);
+  btn.setAttribute('aria-pressed',String(billionOnly));
+  renderTable(currentTA, document.getElementById('detail-search').value.trim());
 }
 
 // ── Detail search ──────────────────────────────────────
