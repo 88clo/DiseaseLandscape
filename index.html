@@ -411,6 +411,65 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 [data-theme="dark"] .disease-table.combined .disease-row.hi-yes .hl-cell{background:#a89200;color:#1a1500}
 [data-theme="dark"] .disease-table.combined .disease-row.hi-no:hover  .hl-cell{background:#6a5d1c}
 [data-theme="dark"] .disease-table.combined .disease-row.hi-yes:hover .hl-cell{background:#c2a900}
+
+/* clickable blockbuster rows */
+.disease-table.combined .disease-row.clickable{cursor:pointer}
+.disease-table.combined .disease-row.clickable .td-indication{color:var(--accent-h);font-weight:600}
+[data-theme="dark"] .disease-table.combined .disease-row.clickable .td-indication{color:var(--accent)}
+.disease-table.combined .disease-row.clickable:hover td{background:var(--accent-hl)}
+.disease-table.combined .disease-row.clickable:hover .hl-cell{filter:brightness(0.97)}
+.row-more{vertical-align:-2px;margin-left:4px;color:var(--accent);opacity:0.65}
+.disease-row.clickable:hover .row-more{opacity:1}
+.disease-table.combined .disease-row.clickable:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* detail modal */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  padding:1.25rem;background:oklch(0.2 0.02 220/0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  animation:modal-fade 140ms ease;
+}
+.modal-overlay[hidden]{display:none}
+@keyframes modal-fade{from{opacity:0}to{opacity:1}}
+.modal-card{
+  position:relative;background:var(--surface-2);color:var(--text);
+  width:min(720px,100%);max-height:88vh;overflow:auto;
+  border:1px solid var(--divider);border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-lg);animation:modal-pop 160ms cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes modal-pop{from{transform:translateY(8px) scale(0.98);opacity:0}to{transform:none;opacity:1}}
+.modal-close{
+  position:absolute;top:0.85rem;right:0.85rem;display:flex;align-items:center;justify-content:center;
+  width:2rem;height:2rem;border-radius:var(--radius-md);color:var(--muted);
+  background:var(--surface);border:1px solid var(--divider);transition:background var(--ease),color var(--ease);
+}
+.modal-close:hover{background:var(--accent-hl);color:var(--accent-h)}
+.modal-head{padding:1.4rem 1.6rem 1rem;border-bottom:1px solid var(--divider);padding-right:3.2rem}
+.modal-eyebrow{font-size:var(--text-xs);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--accent)}
+.modal-head h2{font-family:var(--font-display);font-size:var(--text-xl);letter-spacing:-0.02em;margin:0.2rem 0 0.35rem;line-height:1.15}
+.modal-tam{display:inline-block;font-size:var(--text-xs);font-weight:600;color:#3a3000;background:#ffe838;padding:0.2rem 0.55rem;border-radius:var(--radius-full,9999px)}
+[data-theme="dark"] .modal-tam{background:#a89200;color:#1a1500}
+.modal-body{padding:0.5rem 1.6rem 0.5rem}
+.modal-row{padding:1rem 0;border-bottom:1px solid var(--divider)}
+.modal-row:last-child{border-bottom:none}
+.modal-row h3{font-size:var(--text-sm);font-weight:700;color:var(--accent-h);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.03em}
+[data-theme="dark"] .modal-row h3{color:var(--accent)}
+.modal-rowbody p{font-size:var(--text-sm);line-height:1.55;color:var(--text)}
+.modal-empty{color:var(--faint);font-style:italic}
+.modal-bullets{list-style:none;display:flex;flex-direction:column;gap:0.5rem;margin:0;padding:0}
+.modal-bullets li{
+  position:relative;padding-left:1.25rem;font-size:var(--text-sm);line-height:1.5;color:var(--text);
+}
+.modal-bullets li::before{
+  content:"";position:absolute;left:0.15rem;top:0.5em;width:0.4rem;height:0.4rem;
+  border-radius:50%;background:var(--accent);
+}
+.modal-foot{padding:0.9rem 1.6rem 1.3rem;display:flex;justify-content:flex-end}
+.modal-close-btn{
+  font-size:var(--text-sm);font-weight:600;color:#fff;background:var(--accent);
+  padding:0.5rem 1.25rem;border-radius:var(--radius-md);transition:background var(--ease);
+}
+.modal-close-btn:hover{background:var(--accent-h)}
+[data-theme="dark"] .modal-close-btn{color:#0c1413}
 </style>
 </head>
 <body>
@@ -500,6 +559,24 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 
 </main>
 
+<!-- DETAIL POPUP (blockbuster indications) -->
+<div id="detail-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card" role="document">
+    <button class="modal-close" onclick="closeDetail()" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-head">
+      <span class="modal-eyebrow" id="modal-eyebrow"></span>
+      <h2 id="modal-title"></h2>
+      <span class="modal-tam" id="modal-tam"></span>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="modal-close-btn" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── Theme toggle ───────────────────────────────────────
@@ -588,6 +665,7 @@ let DATA=[], taMap={}, taList=[], currentTA='';
 
 function buildMap(){
   taMap={};
+  DATA.forEach((r,i)=>{ r._id=i; });
   for(const r of DATA){
     if(!taMap[r.ta]) taMap[r.ta]={subs:{}};
     if(!taMap[r.ta].subs[r.subcategory]) taMap[r.ta].subs[r.subcategory]=[];
@@ -836,8 +914,9 @@ function renderTable(ta, q){
     bodyRows+=rows.map(r=>{
       const o=r.over1b==='YES'?'<span class="flag flag-yes">YES</span>':r.over1b==='NO'?'<span class="flag flag-no">NO</span>':'<span class="dash">—</span>';
       const dash=v=>v?(ql?highlight(esc(v),ql):esc(v)):'<span class="dash">—</span>';
-      return `<tr class="disease-row${isOpen?'':' is-hidden'}${r.hi?' '+r.hi:''}" data-group="${groupId}">
-      <td class="td-indication">${ql?highlight(esc(r.indication),ql):esc(r.indication)}</td>
+      const click=r.clickable?` clickable" data-id="${r._id}" role="button" tabindex="0" title="View cause, treatment algorithm & ideas" onclick="openDetail(${r._id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail(${r._id})}`:'"';
+      return `<tr class="disease-row${isOpen?'':' is-hidden'}${r.hi?' '+r.hi:''}${click} data-group="${groupId}">
+      <td class="td-indication">${ql?highlight(esc(r.indication),ql):esc(r.indication)}${r.clickable?' <svg class="row-more" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>':''}</td>
       <td class="td-num">${fmtCount(r.usvol)}</td>
       <td class="td-num">${fmtPct(r.innov)}</td>
       <td class="td-num">${fmtPrice(r.price)}</td>
@@ -907,6 +986,61 @@ function toggleBillion(){
   renderTable(currentTA, document.getElementById('detail-search').value.trim());
 }
 
+// ── Detail popup (Cause / Tx algorithm / Ideas) ────────
+// Split a "- item - item" style string into individual bullets.
+function splitBullets(text){
+  let t=String(text||'').trim();
+  if(!t) return [];
+  if(t[0]!=='-') t='- '+t;
+  // New bullets begin with " - " possibly followed by a "#L#:" line marker or a capital/paren/word.
+  const parts=(' '+t).split(/\s-\s(?=#?L?\d|[A-Za-z(])/);
+  return parts.map(p=>p.replace(/^\s*-\s*/,'').trim()).filter(Boolean);
+}
+function bulletList(text){
+  const items=splitBullets(text);
+  if(!items.length) return '<p class="modal-empty">No data available.</p>';
+  return '<ul class="modal-bullets">'+items.map(i=>`<li>${esc(i)}</li>`).join('')+'</ul>';
+}
+let lastFocus=null;
+function openDetail(id){
+  const r=DATA[id];
+  if(!r) return;
+  lastFocus=document.activeElement;
+  document.getElementById('modal-eyebrow').textContent=`${r.ta} · ${r.subcategory}`;
+  document.getElementById('modal-title').textContent=r.indication;
+  document.getElementById('modal-tam').textContent=`${fmtTAM(r.tam)} TAM · >$1B`;
+  document.getElementById('modal-body').innerHTML=`
+    <section class="modal-row">
+      <h3>Cause</h3>
+      <div class="modal-rowbody">${r.cause?`<p>${esc(r.cause)}</p>`:'<p class="modal-empty">No data available.</p>'}</div>
+    </section>
+    <section class="modal-row">
+      <h3>Treatment Algorithm</h3>
+      <div class="modal-rowbody">${bulletList(r.txalg)}</div>
+    </section>
+    <section class="modal-row">
+      <h3>Ideas</h3>
+      <div class="modal-rowbody">${bulletList(r.ideas)}</div>
+    </section>`;
+  const m=document.getElementById('detail-modal');
+  m.hidden=false;
+  document.body.style.overflow='hidden';
+  m.querySelector('.modal-close').focus();
+}
+function closeDetail(){
+  const m=document.getElementById('detail-modal');
+  m.hidden=true;
+  document.body.style.overflow='';
+  if(lastFocus && lastFocus.focus) lastFocus.focus();
+}
+// close on overlay click or Escape
+document.getElementById('detail-modal').addEventListener('click',function(e){
+  if(e.target===this) closeDetail();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape' && !document.getElementById('detail-modal').hidden) closeDetail();
+});
+
 // ── Detail search ──────────────────────────────────────
 let detTimer;
 document.getElementById('detail-search').addEventListener('input',function(){
@@ -949,7 +1083,10 @@ async function loadData(){
     symptoms:  pick(['symptoms','symptom']),
     goal:      pick(['treatmentgoal','txgoal','goal']),
     efficacy:  pick(['efficacybenchmark','efficacy','benchmark']),
-    over1b:    pick(['1b','over1b','gt1b','greaterthan1b','blockbuster'])
+    over1b:    pick(['1b','over1b','gt1b','greaterthan1b','blockbuster']),
+    cause:     pick(['cause','pathophysiology','pathophys','etiology']),
+    txalg:     pick(['txalgorithm','treatmentalgorithm','linebyline','algorithm']),
+    ideas:     pick(['ideas','novelideas','breakthroughideas','novelbreakthrough'])
   };
   // 'innovative' alone could match the price column too — make sure innov ≠ price.
   if(COL.innov && COL.innov===COL.price){
@@ -977,15 +1114,21 @@ async function loadData(){
       if(over1b==='YES') hi='hi-yes';
       else if(over1b==='NO') hi='hi-no';
     }
+    const cause=String(get(r,'cause')||'').trim();
+    const txalg=String(get(r,'txalg')||'').trim();
+    const ideas=String(get(r,'ideas')||'').trim();
+    // Rows that are TAM ≥ $1B AND flagged YES get a clickable detail popup.
+    const clickable = (tam!=null && tam>=1000 && over1b==='YES' && (cause||txalg||ideas));
     return {
       ta:String(get(r,'ta')||'').trim(),
       subcategory:String(get(r,'sub')||'').trim(),
       indication:String(get(r,'ind')||'').trim(),
-      usvol, innov, price, tam, over1b, hi,
+      usvol, innov, price, tam, over1b, hi, clickable,
       age:String(get(r,'age')||'').trim(),
       symptoms:String(get(r,'symptoms')||'').trim(),
       txgoal:String(get(r,'goal')||'').trim(),
-      efficacy:String(get(r,'efficacy')||'').trim()
+      efficacy:String(get(r,'efficacy')||'').trim(),
+      cause, txalg, ideas
     };
   }).filter(r=>r.ta && r.indication);
 }
