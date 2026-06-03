@@ -376,6 +376,8 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 
 /* numeric metric columns */
 .td-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+.td-rownum{text-align:right;color:var(--faint);font-variant-numeric:tabular-nums;font-size:0.72rem;width:34px;padding-right:0.5rem !important}
+.th-rownum{text-align:right;color:var(--muted)}
 .disease-table th.th-num{text-align:right}
 .td-tam{font-weight:600;color:var(--accent-h)}
 [data-theme="dark"] .td-tam{color:var(--accent)}
@@ -900,7 +902,7 @@ function renderTable(ta, q){
     const isOpen = ql || billionOnly || gi<3;
     const groupId=gi;
     bodyRows+=`<tr class="group-row${isOpen?'':' collapsed'}" data-group="${groupId}">
-      <td colspan="10">
+      <td colspan="11">
         <div class="group-toggle" role="button" tabindex="0" aria-expanded="${isOpen}"
           onclick="toggleGroup(${groupId})"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGroup(${groupId})}">
@@ -911,12 +913,19 @@ function renderTable(ta, q){
         </div>
       </td>
     </tr>`;
+    let rowNum=0;
     bodyRows+=rows.map(r=>{
+      rowNum++;
       const o=r.over1b==='YES'?'<span class="flag flag-yes">YES</span>':r.over1b==='NO'?'<span class="flag flag-no">NO</span>':'<span class="dash">—</span>';
       const dash=v=>v?(ql?highlight(esc(v),ql):esc(v)):'<span class="dash">—</span>';
-      const click=r.clickable?` clickable" data-id="${r._id}" role="button" tabindex="0" title="View cause, treatment algorithm & ideas" onclick="openDetail(${r._id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail(${r._id})}`:'"';
-      return `<tr class="disease-row${isOpen?'':' is-hidden'}${r.hi?' '+r.hi:''}${click} data-group="${groupId}">
-      <td class="td-indication">${ql?highlight(esc(r.indication),ql):esc(r.indication)}${r.clickable?' <svg class="row-more" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>':''}</td>
+      const cls='disease-row'+(isOpen?'':' is-hidden')+(r.hi?' '+r.hi:'')+(r.clickable?' clickable':'');
+      const clickAttrs=r.clickable
+        ? ` data-id="${r._id}" role="button" tabindex="0" title="View cause, treatment algorithm &amp; ideas" onclick="openDetail(${r._id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail(${r._id})}"`
+        : '';
+      const more=r.clickable?' <svg class="row-more" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>':'';
+      return `<tr class="${cls}" data-group="${groupId}"${clickAttrs}>
+      <td class="td-rownum">${rowNum}</td>
+      <td class="td-indication">${ql?highlight(esc(r.indication),ql):esc(r.indication)}${more}</td>
       <td class="td-num">${fmtCount(r.usvol)}</td>
       <td class="td-num">${fmtPct(r.innov)}</td>
       <td class="td-num">${fmtPrice(r.price)}</td>
@@ -937,6 +946,7 @@ function renderTable(ta, q){
     container.innerHTML=`<div class="combined-wrap"><div class="combined-scroll">
       <table class="disease-table combined" aria-label="${escAttr(ta)} diseases">
         <thead><tr>
+          <th class="th-rownum" style="min-width:34px">#</th>
           <th style="min-width:170px">Indication</th>
           <th class="th-num" style="min-width:100px">US Prevalence</th>
           <th class="th-num" style="min-width:95px">% Innovative Tx</th>
@@ -955,28 +965,32 @@ function renderTable(ta, q){
   document.getElementById('result-count').textContent=ql?`${totalVisible} results for "${q}"${suffix}`:`${totalVisible} indications${suffix}`;
 }
 
+// Collect all disease-rows that belong to a given group header (rows until the next group-row).
+function rowsForGroup(gr){
+  const out=[];
+  let n=gr.nextElementSibling;
+  while(n && !n.classList.contains('group-row')){
+    if(n.classList.contains('disease-row')) out.push(n);
+    n=n.nextElementSibling;
+  }
+  return out;
+}
+function setGroupCollapsed(gr, collapsed){
+  gr.classList.toggle('collapsed', collapsed);
+  const t=gr.querySelector('.group-toggle');
+  if(t) t.setAttribute('aria-expanded', String(!collapsed));
+  rowsForGroup(gr).forEach(r=>r.classList.toggle('is-hidden', collapsed));
+}
 function toggleGroup(id){
   const gr=document.querySelector('.group-row[data-group="'+id+'"]');
   if(!gr) return;
-  const collapsed=gr.classList.toggle('collapsed');
-  gr.querySelector('.group-toggle').setAttribute('aria-expanded', String(!collapsed));
-  document.querySelectorAll('.disease-row[data-group="'+id+'"]').forEach(r=>r.classList.toggle('is-hidden',collapsed));
+  setGroupCollapsed(gr, !gr.classList.contains('collapsed'));
 }
 function expandAll(){
-  document.querySelectorAll('.group-row').forEach(gr=>{
-    gr.classList.remove('collapsed');
-    gr.querySelector('.group-toggle')?.setAttribute('aria-expanded','true');
-    const id=gr.getAttribute('data-group');
-    document.querySelectorAll('.disease-row[data-group="'+id+'"]').forEach(r=>r.classList.remove('is-hidden'));
-  });
+  document.querySelectorAll('#sub-groups .group-row').forEach(gr=>setGroupCollapsed(gr,false));
 }
 function collapseAll(){
-  document.querySelectorAll('.group-row').forEach(gr=>{
-    gr.classList.add('collapsed');
-    gr.querySelector('.group-toggle')?.setAttribute('aria-expanded','false');
-    const id=gr.getAttribute('data-group');
-    document.querySelectorAll('.disease-row[data-group="'+id+'"]').forEach(r=>r.classList.add('is-hidden'));
-  });
+  document.querySelectorAll('#sub-groups .group-row').forEach(gr=>setGroupCollapsed(gr,true));
 }
 function toggleBillion(){
   billionOnly=!billionOnly;
