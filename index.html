@@ -263,6 +263,11 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 [data-theme="dark"]{ --map-bg:#16201f; }
 @media(prefers-color-scheme:dark){:root:not([data-theme]){ --map-bg:#16201f; }}
 
+/* Subcategory header: dark fill in light mode, white fill in dark mode */
+:root,[data-theme="light"]{ --subhead-bg:#1a2b2a; --subhead-fg:#ffffff; --subhead-muted:#b9c9c6; --subhead-chip:rgba(255,255,255,0.16); }
+[data-theme="dark"]{ --subhead-bg:#ffffff; --subhead-fg:#16201f; --subhead-muted:#5a6b68; --subhead-chip:rgba(0,0,0,0.10); }
+@media(prefers-color-scheme:dark){:root:not([data-theme]){ --subhead-bg:#ffffff; --subhead-fg:#16201f; --subhead-muted:#5a6b68; --subhead-chip:rgba(0,0,0,0.10); }}
+
 .home-layout{
   display:grid; grid-template-columns:1fr 1fr;
   gap:1.5rem; align-items:start;
@@ -349,20 +354,21 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .disease-table.combined .group-row td{padding:0}
 .group-toggle{
   display:flex;align-items:center;gap:0.75rem;width:100%;
-  padding:0.8rem 1.25rem;background:var(--surface-2);
-  border-top:2px solid var(--accent);cursor:pointer;user-select:none;
-  transition:background var(--ease);text-align:left;
+  padding:0.8rem 1.25rem;
+  background:var(--subhead-bg);color:var(--subhead-fg);
+  cursor:pointer;user-select:none;
+  transition:background var(--ease),filter var(--ease);text-align:left;
 }
 .disease-table.combined tbody tr.group-row:first-child .group-toggle{border-top:none}
-.group-toggle:hover{background:var(--accent-hl)}
-.group-toggle .sub-name{font-size:var(--text-base);font-weight:700;color:var(--accent-h)}
+.group-toggle:hover{filter:brightness(1.12)}
+.group-toggle .sub-name{font-size:var(--text-base);font-weight:700;color:var(--subhead-fg)}
 .group-toggle .sub-badge{
-  font-size:var(--text-xs);color:var(--accent);background:var(--accent-hl);
-  padding:0.15rem 0.5rem;border-radius:var(--radius-full,9999px);font-weight:500;
+  font-size:var(--text-xs);color:var(--subhead-fg);background:var(--subhead-chip);
+  padding:0.15rem 0.5rem;border-radius:var(--radius-full,9999px);font-weight:600;
 }
-.group-toggle .sub-tam{font-size:var(--text-xs);color:var(--muted);margin-left:0.1rem}
-.group-toggle .sub-tam b{color:var(--accent-h);font-weight:600}
-.group-toggle .chevron{margin-left:auto;color:var(--accent);transition:transform var(--ease),color var(--ease)}
+.group-toggle .sub-tam{font-size:var(--text-xs);color:var(--subhead-muted);margin-left:0.1rem}
+.group-toggle .sub-tam b{color:var(--subhead-fg);font-weight:700}
+.group-toggle .chevron{margin-left:auto;color:var(--subhead-fg);opacity:0.8;transition:transform var(--ease)}
 .group-row.collapsed .chevron{transform:rotate(-90deg)}
 .group-row.collapsed + tr,
 .disease-row.is-hidden{display:none}
@@ -378,7 +384,7 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .disease-table.combined{font-size:0.78rem}
 .disease-table.combined thead th{padding:0.4rem 0.85rem;font-size:0.66rem}
 .disease-table.combined td{padding:0.3rem 0.85rem;line-height:1.3}
-.disease-table.combined .disease-row:not(.hi-yes):not(.hi-no) td{background:var(--surface)}
+.disease-table.combined .disease-row td{background:var(--surface)}
 .disease-table.combined .td-indication{font-weight:500;min-width:170px}
 .disease-table.combined .group-toggle{padding:0.6rem 1rem}
 .disease-table.combined .group-toggle .sub-name{font-size:0.98rem}
@@ -395,19 +401,16 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .flag-no{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
 [data-theme="dark"] .flag-yes{background:var(--accent);color:#0c1413}
 
-/* TAM > $1B highlight tiers (column M + column T flag) */
-.disease-row.hi-no  > td{background:#fdf3c4}      /* TAM>$1B but flagged NO  — soft yellow */
-.disease-row.hi-yes > td{background:#ffe838}      /* TAM>$1B and flagged YES — bright yellow */
-.disease-row.hi-no:hover  > td{background:#f7e9a8}
-.disease-row.hi-yes:hover > td{background:#ffe204}
-.disease-row.hi-no  .dash,.disease-row.hi-yes .dash{color:#a89a45}
-.disease-row.hi-yes > td{color:#3a3000}
-.disease-row.hi-no  > td{color:#4a3f00}
-[data-theme="dark"] .disease-row.hi-no  > td{background:#5a4f17;color:#f0e6b0}
-[data-theme="dark"] .disease-row.hi-yes > td{background:#a89200;color:#1a1500}
-[data-theme="dark"] .disease-row.hi-no:hover  > td{background:#6a5d1c}
-[data-theme="dark"] .disease-row.hi-yes:hover > td{background:#c2a900}
-.disease-row.hi-yes .flag-no,.disease-row.hi-no .flag-no{background:rgba(255,255,255,0.6)}
+/* TAM ≥ $1B highlight — applied ONLY to the TAM and >$1B cells */
+.disease-table.combined .disease-row.hi-no  .hl-cell{background:#fdf3c4;color:#4a3f00}   /* TAM≥$1B, flagged NO  — soft yellow */
+.disease-table.combined .disease-row.hi-yes .hl-cell{background:#ffe838;color:#3a3000}   /* TAM≥$1B, flagged YES — bright yellow */
+.disease-table.combined .disease-row.hi-no:hover  .hl-cell{background:#f7e9a8}
+.disease-table.combined .disease-row.hi-yes:hover .hl-cell{background:#ffe204}
+.disease-table.combined .disease-row.hi-no  .hl-cell.td-tam,.disease-table.combined .disease-row.hi-yes .hl-cell.td-tam{font-weight:700}
+[data-theme="dark"] .disease-table.combined .disease-row.hi-no  .hl-cell{background:#5a4f17;color:#f0e6b0}
+[data-theme="dark"] .disease-table.combined .disease-row.hi-yes .hl-cell{background:#a89200;color:#1a1500}
+[data-theme="dark"] .disease-table.combined .disease-row.hi-no:hover  .hl-cell{background:#6a5d1c}
+[data-theme="dark"] .disease-table.combined .disease-row.hi-yes:hover .hl-cell{background:#c2a900}
 </style>
 </head>
 <body>
@@ -490,7 +493,7 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
     <span class="result-count" id="result-count"></span>
     <button id="expand-all-btn" onclick="expandAll()" style="font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-full,9999px)">Expand all</button>
     <button id="collapse-all-btn" onclick="collapseAll()" style="font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-full,9999px)">Collapse all</button>
-    <button id="billion-btn" class="billion-btn" onclick="toggleBillion()" aria-pressed="false">TAM &gt; $1B only</button>
+    <button id="billion-btn" class="billion-btn" onclick="toggleBillion()" aria-pressed="false">TAM &ge; $1B only</button>
   </div>
   <div id="sub-groups"></div>
 </section>
@@ -778,7 +781,7 @@ function renderSearchResults(q){
       <td class="td-age">${dash(r.age)}</td>
       <td class="td-text">${dash(r.symptoms)}</td>
       <td class="td-text">${dash(r.txgoal)}</td>
-      <td class="td-flag">${o}</td>
+      <td class="td-flag hl-cell">${o}</td>
     </tr>`;}).join('');
   body.innerHTML=`<div class="combined-wrap"><div class="combined-scroll">
     <table class="disease-table combined sr-table" aria-label="Search results for ${escAttr(q)}">
@@ -807,7 +810,7 @@ function renderTable(ta, q){
   const subKeys=Object.keys(subs).slice().sort((a,b)=>subTAM(subs[b])-subTAM(subs[a]));
   subKeys.forEach((sub)=>{
     let rows=subs[sub].slice().sort((x,y)=>(y.tam||0)-(x.tam||0));
-    if(billionOnly) rows=rows.filter(r=>(r.tam||0)>1000);
+    if(billionOnly) rows=rows.filter(r=>(r.tam||0)>=1000);
     if(ql) rows=rows.filter(r=>
       r.indication.toLowerCase().includes(ql)||
       (r.symptoms||'').toLowerCase().includes(ql)||
@@ -838,18 +841,18 @@ function renderTable(ta, q){
       <td class="td-num">${fmtCount(r.usvol)}</td>
       <td class="td-num">${fmtPct(r.innov)}</td>
       <td class="td-num">${fmtPrice(r.price)}</td>
-      <td class="td-num td-tam">${fmtTAM(r.tam)}</td>
+      <td class="td-num td-tam hl-cell">${fmtTAM(r.tam)}</td>
       <td class="td-age">${dash(r.age)}</td>
       <td class="td-text">${dash(r.symptoms)}</td>
       <td class="td-text">${dash(r.txgoal)}</td>
       <td class="td-text">${dash(r.efficacy)}</td>
-      <td class="td-flag">${o}</td>
+      <td class="td-flag hl-cell">${o}</td>
     </tr>`;}).join('');
     gi++;
   });
 
   if(gi===0){
-    const msg=billionOnly?'No indications with TAM over $1B'+(ql?' match your search.':' in this area.'):'Try a different search term.';
+    const msg=billionOnly?'No indications with TAM ≥ $1B'+(ql?' match your search.':' in this area.'):'Try a different search term.';
     container.innerHTML='<div class="no-results"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><strong>No results found</strong><span>'+msg+'</span></div>';
   } else {
     container.innerHTML=`<div class="combined-wrap"><div class="combined-scroll">
@@ -869,7 +872,7 @@ function renderTable(ta, q){
         <tbody>${bodyRows}</tbody>
       </table></div></div>`;
   }
-  const suffix=billionOnly?' with TAM > $1B':'';
+  const suffix=billionOnly?' with TAM ≥ $1B':'';
   document.getElementById('result-count').textContent=ql?`${totalVisible} results for "${q}"${suffix}`:`${totalVisible} indications${suffix}`;
 }
 
@@ -968,9 +971,9 @@ async function loadData(){
     const overRaw=String(get(r,'over1b')||'').trim();
     const up=overRaw.toUpperCase();
     let over1b = up.startsWith('YES') ? 'YES' : up.startsWith('NO') ? 'NO' : '';
-    // Highlight tier: TAM>$1B (M>1000) split by the YES/NO flag.
+    // Highlight tier: TAM ≥ $1B (M ≥ 1000) split by the YES/NO flag.
     let hi='';
-    if(tam!=null && tam>1000){
+    if(tam!=null && tam>=1000){
       if(over1b==='YES') hi='hi-yes';
       else if(over1b==='NO') hi='hi-no';
     }
