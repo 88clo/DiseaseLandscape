@@ -987,14 +987,32 @@ function toggleBillion(){
 }
 
 // ── Detail popup (Cause / Tx algorithm / Ideas) ────────
-// Split a "- item - item" style string into individual bullets.
+// Robustly split the algorithm/ideas text into individual bullets. The source uses several
+// formats: "#L1: … #L2: …" treatment lines, explicit "- item - item" dashes, and run-on
+// "Title: body. <citation> NextTitle: body." prose with no visible delimiter.
 function splitBullets(text){
   let t=String(text||'').trim();
   if(!t) return [];
-  if(t[0]!=='-') t='- '+t;
-  // New bullets begin with " - " possibly followed by a "#L#:" line marker or a capital/paren/word.
-  const parts=(' '+t).split(/\s-\s(?=#?L?\d|[A-Za-z(])/);
-  return parts.map(p=>p.replace(/^\s*-\s*/,'').trim()).filter(Boolean);
+  // 1) Treatment-algorithm: explicit #L1/#L2/... markers
+  if(/#L\d/.test(t)){
+    return t.split(/\s*(?:-\s*)?(?=#L\d)/).map(p=>p.replace(/^[\s\-]+/,'').trim()).filter(Boolean);
+  }
+  // 2) Explicit dash bullets
+  if(/^\s*-/.test(t) || /\s-\s/.test(t)){
+    if(!t.startsWith('-')) t='- '+t;
+    return (' '+t).split(/\s-\s(?=[A-Za-z(0-9])/).map(p=>p.replace(/^[\s\-]+/,'').trim()).filter(Boolean);
+  }
+  // 3) Run-on "Title: body. <citation> NextTitle: body." — split before each new Title.
+  //    A Title reaches a ':' with no sentence-ending '. ' before it; lowercase citation tokens
+  //    between the period and the Title are kept with the PREVIOUS item.
+  const SEP='\u0001';
+  const LCITE='(?:[a-z][a-z0-9\\u2010\\u2011.\\-]*(?:\\+\\d+)?\\s+)*';
+  const TSTART='(?:[A-Z(0-9]|mRNA|siRNA|miRNA|tRNA|dsRNA|norUDCA|nor[A-Z]|pH)';
+  const titleBody='(?:[^.:]|\\.(?!\\s))*?:';
+  const boundary=new RegExp('([.!?])\\s+('+LCITE+')(?='+TSTART+titleBody+')','g');
+  const marked=t.replace(boundary,(m,punct,glue)=>punct+(glue?' '+glue.trim():'')+' '+SEP);
+  const parts=marked.split(SEP).map(p=>p.trim()).filter(Boolean);
+  return parts.length?parts:[t];
 }
 function bulletList(text){
   const items=splitBullets(text);
