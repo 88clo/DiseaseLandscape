@@ -175,6 +175,31 @@ h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
 .billion-btn:hover{border-color:var(--accent);color:var(--accent-h)}
 .billion-btn.active{background:#ffe838;border-color:#e6cc00;color:#3a3000;font-weight:600}
 [data-theme="dark"] .billion-btn.active{background:#a89200;border-color:#c2a900;color:#1a1500}
+/* Realistic-TAM filter uses the teal accent so it reads as a different lens than the yellow US-TAM filter */
+.realtam-btn.active{background:var(--accent);border-color:var(--accent-h);color:#fff}
+[data-theme="dark"] .realtam-btn.active{background:var(--accent);border-color:var(--accent);color:#0c1413}
+
+/* Realistic TAM column + commercial-note tooltip */
+.td-realtam{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent-h);font-weight:600}
+[data-theme="dark"] .td-realtam{color:var(--accent)}
+.td-realtam.has-note{position:relative;cursor:help}
+.td-realtam.has-note .rt-val{text-decoration:underline dotted;text-underline-offset:3px;text-decoration-color:var(--border)}
+.td-realtam.has-note:hover .rt-val,.td-realtam.has-note:focus .rt-val{text-decoration-color:var(--accent)}
+.note-tip{
+  position:absolute;bottom:calc(100% + 6px);right:0;z-index:50;
+  width:max-content;max-width:340px;white-space:normal;text-align:left;
+  background:var(--surface-2);color:var(--text);font-weight:400;
+  font-size:var(--text-xs);line-height:1.45;padding:0.6rem 0.75rem;
+  border:1px solid var(--divider);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);
+  opacity:0;visibility:hidden;transform:translateY(3px);
+  transition:opacity var(--ease),transform var(--ease),visibility var(--ease);
+  pointer-events:none;
+}
+.note-tip::after{
+  content:"";position:absolute;top:100%;right:18px;
+  border:6px solid transparent;border-top-color:var(--surface-2);
+}
+.td-realtam.has-note:hover .note-tip,.td-realtam.has-note:focus .note-tip{opacity:1;visibility:visible;transform:translateY(0)}
 
 /* ── Subcategory accordion ───────────────────────────── */
 .sub-group{border:1px solid var(--divider);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:0.75rem;box-shadow:var(--shadow-sm)}
@@ -554,7 +579,8 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
     <span class="result-count" id="result-count"></span>
     <button id="expand-all-btn" onclick="expandAll()" style="font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-full,9999px)">Expand all</button>
     <button id="collapse-all-btn" onclick="collapseAll()" style="font-size:var(--text-xs);color:var(--muted);padding:0.3rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-full,9999px)">Collapse all</button>
-    <button id="billion-btn" class="billion-btn" onclick="toggleBillion()" aria-pressed="false">TAM &ge; $1B only</button>
+    <button id="billion-btn" class="billion-btn" onclick="toggleBillion()" aria-pressed="false">US TAM &ge; $1B</button>
+    <button id="realtam-btn" class="billion-btn realtam-btn" onclick="toggleRealtam()" aria-pressed="false">Realistic TAM &ge; $1B</button>
   </div>
   <div id="sub-groups"></div>
 </section>
@@ -599,8 +625,8 @@ const TA_ICONS = {
   'Cardiovascular':'🫀','Dental and Oral Health':'🦷','Dermatology':'🩹',
   'Endocrine and Metabolic':'⚗️','Gastrointestinal':'🫃','General Medicine':'🏥',
   'Hematology':'🩸','Immunology':'🛡️','Infectious Disease':'🦠',
-  'Musculoskeletal and Rheumatology':'🦴','Neurosciences':'🧠','Oncology':'🔬',
-  'Oncology (blood)':'🧬',
+  'Musculoskeletal and Rheumatology':'🦴','Neurology':'🧠','Oncology':'🔬',
+  'Oncology (blood)':'🧬','Psychology':'🧩','Pain':'🌡️',
   'Ophthalmology':'👁️','Otolaryngology':'👂','Pediatrics':'👶',
   'Pulmonary and Critical Care':'🫁','Trauma, Toxicology, and Emergency Medicine':'🚑',
   'Urology and Nephrology':'🧫',"Women's Health":'⚕️'
@@ -610,7 +636,7 @@ const TA_ICONS = {
 // Organ-anchored TAs: side (L/R), button-center y, anchor [ax,ay] on the image.
 const IMGW=278, IMGH=740;
 const ORGAN_TAS = [
-  {ta:'Neurosciences',                    side:'L', by:60,  ax:139, ay:40 },
+  {ta:'Neurology',                        side:'L', by:60,  ax:139, ay:40 },
   {ta:'Ophthalmology',                    side:'L', by:150, ax:120, ay:70 },
   {ta:'Otolaryngology',                   side:'L', by:240, ax:150, ay:95 },
   {ta:'Cardiovascular',                   side:'L', by:330, ax:150, ay:210},
@@ -623,7 +649,7 @@ const ORGAN_TAS = [
   {ta:'Urology and Nephrology',           side:'R', by:445, ax:165, ay:290},
   {ta:"Women's Health",                   side:'R', by:545, ax:140, ay:360}
 ];
-const SYSTEMIC_TAS = ['Oncology','Oncology (blood)','Hematology','Immunology','Infectious Disease','General Medicine','Pediatrics','Trauma, Toxicology, and Emergency Medicine'];
+const SYSTEMIC_TAS = ['Oncology','Oncology (blood)','Hematology','Immunology','Infectious Disease','Psychology','Pain','General Medicine','Pediatrics','Trauma, Toxicology, and Emergency Medicine'];
 
 // ── Helpers ────────────────────────────────────────────
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -796,9 +822,11 @@ function hideAllViews(){
 }
 function showTA(ta, initialSearch=''){
   currentTA=ta;
-  billionOnly=false;
+  billionOnly=false; realtamOnly=false;
   const bb=document.getElementById('billion-btn');
   if(bb){ bb.classList.remove('active'); bb.setAttribute('aria-pressed','false'); }
+  const rb=document.getElementById('realtam-btn');
+  if(rb){ rb.classList.remove('active'); rb.setAttribute('aria-pressed','false'); }
   hideAllViews();
   document.getElementById('home-search-wrap').style.visibility='hidden';
   document.getElementById('detail').style.display='block';
@@ -881,6 +909,7 @@ function renderSearchResults(q){
 
 // ── Combined collapsible table ─────────────────────────
 let billionOnly=false;
+let realtamOnly=false;
 function renderTable(ta, q){
   const subs=taMap[ta].subs;
   const ql=(q||'').toLowerCase();
@@ -891,18 +920,19 @@ function renderTable(ta, q){
   subKeys.forEach((sub)=>{
     let rows=subs[sub].slice().sort((x,y)=>(y.tam||0)-(x.tam||0));
     if(billionOnly) rows=rows.filter(r=>(r.tam||0)>=1000);
+    if(realtamOnly) rows=rows.filter(r=>(r.realtam||0)>=1000);
     if(ql) rows=rows.filter(r=>
       r.indication.toLowerCase().includes(ql)||
       (r.symptoms||'').toLowerCase().includes(ql)||
       (r.txgoal||'').toLowerCase().includes(ql)||
       (r.efficacy||'').toLowerCase().includes(ql)||
       (r.age||'').toLowerCase().includes(ql));
-    if((ql||billionOnly) && rows.length===0) return;
+    if((ql||billionOnly||realtamOnly) && rows.length===0) return;
     totalVisible+=rows.length;
-    const isOpen = ql || billionOnly || gi<3;
+    const isOpen = ql || billionOnly || realtamOnly || gi<3;
     const groupId=gi;
     bodyRows+=`<tr class="group-row${isOpen?'':' collapsed'}" data-group="${groupId}">
-      <td colspan="11">
+      <td colspan="12">
         <div class="group-toggle" role="button" tabindex="0" aria-expanded="${isOpen}"
           onclick="toggleGroup(${groupId})"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGroup(${groupId})}">
@@ -923,6 +953,11 @@ function renderTable(ta, q){
         ? ` data-id="${r._id}" role="button" tabindex="0" title="View cause, treatment algorithm &amp; ideas" onclick="openDetail(${r._id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail(${r._id})}"`
         : '';
       const more=r.clickable?' <svg class="row-more" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>':'';
+      // Realistic TAM cell: shows the commercial note on hover when present.
+      const rt=r.realtam!=null?fmtTAM(r.realtam):'<span class="dash">—</span>';
+      const rtCell=r.note
+        ? `<td class="td-num td-realtam has-note" tabindex="0" aria-label="${escAttr(r.note)}"><span class="rt-val">${rt}</span><span class="note-tip" role="tooltip">${esc(r.note)}</span></td>`
+        : `<td class="td-num td-realtam">${rt}</td>`;
       return `<tr class="${cls}" data-group="${groupId}"${clickAttrs}>
       <td class="td-rownum">${rowNum}</td>
       <td class="td-indication">${ql?highlight(esc(r.indication),ql):esc(r.indication)}${more}</td>
@@ -930,6 +965,7 @@ function renderTable(ta, q){
       <td class="td-num">${fmtPct(r.innov)}</td>
       <td class="td-num">${fmtPrice(r.price)}</td>
       <td class="td-num td-tam hl-cell">${fmtTAM(r.tam)}</td>
+      ${rtCell}
       <td class="td-age">${dash(r.age)}</td>
       <td class="td-text">${dash(r.symptoms)}</td>
       <td class="td-text">${dash(r.txgoal)}</td>
@@ -940,7 +976,9 @@ function renderTable(ta, q){
   });
 
   if(gi===0){
-    const msg=billionOnly?'No indications with TAM ≥ $1B'+(ql?' match your search.':' in this area.'):'Try a different search term.';
+    let msg='Try a different search term.';
+    if(realtamOnly) msg='No indications with realistic TAM ≥ $1B'+(ql?' match your search.':' in this area.');
+    else if(billionOnly) msg='No indications with TAM ≥ $1B'+(ql?' match your search.':' in this area.');
     container.innerHTML='<div class="no-results"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><strong>No results found</strong><span>'+msg+'</span></div>';
   } else {
     container.innerHTML=`<div class="combined-wrap"><div class="combined-scroll">
@@ -951,7 +989,8 @@ function renderTable(ta, q){
           <th class="th-num" style="min-width:100px">US Prevalence</th>
           <th class="th-num" style="min-width:95px">% Innovative Tx</th>
           <th class="th-num" style="min-width:95px">Price</th>
-          <th class="th-num" style="min-width:85px">TAM</th>
+          <th class="th-num" style="min-width:85px">US TAM</th>
+          <th class="th-num" style="min-width:95px">Realistic TAM</th>
           <th style="min-width:90px">Age of Onset/Dx</th>
           <th style="min-width:280px">Symptoms</th>
           <th style="min-width:280px">Treatment Goal</th>
@@ -961,7 +1000,9 @@ function renderTable(ta, q){
         <tbody>${bodyRows}</tbody>
       </table></div></div>`;
   }
-  const suffix=billionOnly?' with TAM ≥ $1B':'';
+  let suffix='';
+  if(realtamOnly) suffix=' with realistic TAM ≥ $1B';
+  else if(billionOnly) suffix=' with TAM ≥ $1B';
   document.getElementById('result-count').textContent=ql?`${totalVisible} results for "${q}"${suffix}`:`${totalVisible} indications${suffix}`;
 }
 
@@ -994,10 +1035,21 @@ function collapseAll(){
 }
 function toggleBillion(){
   billionOnly=!billionOnly;
-  const btn=document.getElementById('billion-btn');
-  btn.classList.toggle('active',billionOnly);
-  btn.setAttribute('aria-pressed',String(billionOnly));
+  if(billionOnly){ realtamOnly=false; }
+  syncFilterButtons();
   renderTable(currentTA, document.getElementById('detail-search').value.trim());
+}
+function toggleRealtam(){
+  realtamOnly=!realtamOnly;
+  if(realtamOnly){ billionOnly=false; }
+  syncFilterButtons();
+  renderTable(currentTA, document.getElementById('detail-search').value.trim());
+}
+function syncFilterButtons(){
+  const bb=document.getElementById('billion-btn');
+  if(bb){ bb.classList.toggle('active',billionOnly); bb.setAttribute('aria-pressed',String(billionOnly)); }
+  const rb=document.getElementById('realtam-btn');
+  if(rb){ rb.classList.toggle('active',realtamOnly); rb.setAttribute('aria-pressed',String(realtamOnly)); }
 }
 
 // ── Detail popup (Cause / Tx algorithm / Ideas) ────────
@@ -1111,6 +1163,8 @@ async function loadData(){
     innov:     pick(['innovativetx','innovativepatient','innovativeshare','innovative']),
     price:     pick(['innovativedrugprice','innovativeprice','drugprice','price']),
     tam:       pick(['ustamm','ustam','tamm','tam']),
+    realtam:   pick(['realistictamm','realistictam','realtam']),
+    note:      pick(['commercialnote','commercialnotes','note','notes']),
     age:       pick(['ageofonsetdx','ageofonset','ageofdx','ageonset','age']),
     symptoms:  pick(['symptoms','symptom']),
     goal:      pick(['treatmentgoal','txgoal','goal']),
@@ -1149,13 +1203,15 @@ async function loadData(){
     const cause=String(get(r,'cause')||'').trim();
     const txalg=String(get(r,'txalg')||'').trim();
     const ideas=String(get(r,'ideas')||'').trim();
+    let realtam=numify(get(r,'realtam'));
+    const note=String(get(r,'note')||'').trim();
     // Rows that are TAM ≥ $1B AND flagged YES get a clickable detail popup.
     const clickable = (tam!=null && tam>=1000 && over1b==='YES' && (cause||txalg||ideas));
     return {
       ta:String(get(r,'ta')||'').trim(),
       subcategory:String(get(r,'sub')||'').trim(),
       indication:String(get(r,'ind')||'').trim(),
-      usvol, innov, price, tam, over1b, hi, clickable,
+      usvol, innov, price, tam, realtam, note, over1b, hi, clickable,
       age:String(get(r,'age')||'').trim(),
       symptoms:String(get(r,'symptoms')||'').trim(),
       txgoal:String(get(r,'goal')||'').trim(),
