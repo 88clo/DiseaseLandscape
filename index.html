@@ -183,10 +183,13 @@ h1,h2,h3,h4{text-wrap:balance;line-height:1.2}
 .td-realtam{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--accent-h);font-weight:600}
 [data-theme="dark"] .td-realtam{color:var(--accent)}
 .td-realtam.has-note{position:relative;cursor:help}
+/* On hover/focus, lift the whole cell into a high stacking context so its tooltip
+   paints above the sticky table header and the subcategory subheaders. */
+.td-realtam.has-note:hover,.td-realtam.has-note:focus,.td-realtam.has-note:focus-within{z-index:200}
 .td-realtam.has-note .rt-val{text-decoration:underline dotted;text-underline-offset:3px;text-decoration-color:var(--border)}
 .td-realtam.has-note:hover .rt-val,.td-realtam.has-note:focus .rt-val{text-decoration-color:var(--accent)}
 .note-tip{
-  position:absolute;bottom:calc(100% + 6px);right:0;z-index:50;
+  position:absolute;bottom:calc(100% + 6px);right:0;z-index:200;
   width:max-content;max-width:340px;white-space:normal;text-align:left;
   background:var(--surface-2);color:var(--text);font-weight:400;
   font-size:var(--text-xs);line-height:1.45;padding:0.6rem 0.75rem;
@@ -338,6 +341,7 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
   font-size:11.5px; pointer-events:none; letter-spacing:0.01em;
 }
 .svg-ta .btn-sub .v{fill:var(--accent-h);font-weight:600}
+.svg-ta .btn-sub .vr{fill:var(--accent-h);font-weight:700}
 .svg-ta:hover .btn-bg{fill:var(--accent-hl);stroke:var(--accent)}
 .svg-ta:hover .btn-label{fill:var(--accent-h)}
 .svg-ta:focus-visible{outline:none}
@@ -659,6 +663,9 @@ const SYSTEMIC_TAS = ['Oncology','Oncology (blood)','Immunology','Infectious Dis
 // ── Helpers ────────────────────────────────────────────
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function escAttr(s){return String(s==null?'':s).replace(/'/g,'&#39;').replace(/"/g,'&quot;')}
+// Escape a value for a single-quoted JS string that lives inside an HTML attribute.
+// Backslashes survive HTML attribute parsing, so apostrophes (e.g. "Women's Health") stay intact.
+function escJs(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}
 function highlight(html,q){
   if(!q) return html;
   const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
@@ -763,11 +770,11 @@ function renderBodyMap(){
     const nameTspans=lines.map((ln,i)=>`<tspan x="${cx}" y="${nameStart+i*15}">${esc(ln)}</tspan>`).join('');
     const subY=y+h-11;
     buttons+=`<g class="svg-ta" role="listitem" tabindex="0" aria-label="${escAttr(o.ta)}: ${st.inds} indications, ${st.subs} subcategories, ${fmtTAM(st.tam)} TAM"
-        onclick="showTA('${escAttr(o.ta)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTA('${escAttr(o.ta)}')}">
+        onclick="showTA('${escJs(o.ta)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTA('${escJs(o.ta)}')}">
       <rect class="btn-bg" x="${x}" y="${y}" width="${BW}" height="${h}" rx="10"/>
       <text class="btn-icon" text-anchor="middle" x="${cx}" y="${y+19}">${icon}</text>
       <text class="btn-label" text-anchor="middle">${nameTspans}</text>
-      <text class="btn-sub" text-anchor="middle" x="${cx}" y="${subY}"><tspan class="v">${st.inds}</tspan> ind&#160;·&#160;<tspan class="v">${st.subs}</tspan> sub&#160;·&#160;<tspan class="v">${fmtTAM(st.tam)}</tspan></text>
+      <text class="btn-sub" text-anchor="middle" x="${cx}" y="${subY}"><tspan class="v">${st.inds}</tspan> ind&#160;·&#160;<tspan class="v">${fmtTAM(st.tam)}</tspan>&#160;·&#160;<tspan class="v vr">${fmtTAM(st.realtam)}</tspan> real</text>
     </g>`;
     const ax=imgLeft+o.ax*s, ay=IMG_TOP+o.ay*s;
     // start a little inside the button edge; curve into the organ anchor with an arrowhead
@@ -799,11 +806,11 @@ function renderSystemic(){
     const st=taStats(ta);
     const icon=TA_ICONS[ta]||'💊';
     return `<button class="sys-card" role="listitem" aria-label="${escAttr(ta)}: ${st.inds} indications, ${st.subs} subcategories, total TAM ${fmtTAM(st.tam)}"
-        onclick="showTA('${escAttr(ta)}')">
+        onclick="showTA('${escJs(ta)}')">
       <span class="sys-icon" aria-hidden="true">${icon}</span>
       <span class="sys-info">
         <span class="sys-name">${esc(ta)}</span>
-        <span class="sys-meta"><b>${st.inds}</b> ind · <b>${st.subs}</b> sub · <b>${fmtTAM(st.tam)}</b></span>
+        <span class="sys-meta"><b>${st.inds}</b> ind · <b>${fmtTAM(st.tam)}</b> · <b class="vr">${fmtTAM(st.realtam)}</b> real</span>
       </span>
     </button>`;
   }).join('');
@@ -895,8 +902,8 @@ function renderSearchResults(q){
     const o=r.over1b==='YES'?'<span class="flag flag-yes">YES</span>':r.over1b==='NO'?'<span class="flag flag-no">NO</span>':'<span class="dash">—</span>';
     const dash=v=>v?highlight(esc(v),ql):'<span class="dash">—</span>';
     return `<tr class="disease-row sr-row${r.hi?' '+r.hi:''}" tabindex="0" role="link"
-      onclick="showTA('${escAttr(r.ta)}','${escAttr(q)}')"
-      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTA('${escAttr(r.ta)}','${escAttr(q)}')}">
+      onclick="showTA('${escJs(r.ta)}','${escJs(q)}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTA('${escJs(r.ta)}','${escJs(q)}')}">
       <td class="td-indication">${highlight(esc(r.indication),ql)}</td>
       <td class="sr-ta"><span class="sr-ta-link">${esc(r.ta)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></span></td>
       <td class="sr-sub">${esc(r.subcategory)}</td>
