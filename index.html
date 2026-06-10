@@ -313,7 +313,7 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
   letter-spacing:-0.01em; padding:0.1rem 1rem 0; color:var(--text);
 }
 .bodymap-sub{font-size:var(--text-xs);color:var(--muted);padding:0.05rem 1rem 0.35rem}
-#bodymap-svg{width:100%;max-height:560px;height:auto;display:block;margin:0 auto}
+#bodymap-svg{width:100%;max-height:640px;height:auto;display:block;margin:0 auto}
 .anatomy-img{filter:saturate(1.02)}
 [data-theme="dark"] .anatomy-img{filter:saturate(0.92) brightness(0.92)}
 
@@ -393,6 +393,9 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 }
 .group-toggle .sub-tam{font-size:var(--text-xs);color:var(--subhead-muted);margin-left:0.1rem}
 .group-toggle .sub-tam b{color:var(--subhead-fg);font-weight:700}
+.group-toggle .sub-realtam{margin-left:0.75rem;padding-left:0.75rem;border-left:1px solid var(--subhead-muted)}
+.detail-meta .meta-real{padding-left:1.25rem;border-left:1px solid var(--divider);color:var(--accent-h);font-weight:600}
+[data-theme="dark"] .detail-meta .meta-real{color:var(--accent)}
 .group-toggle .chevron{margin-left:auto;color:var(--subhead-fg);opacity:0.8;transition:transform var(--ease)}
 .group-row.collapsed .chevron{transform:rotate(-90deg)}
 .group-row.collapsed + tr,
@@ -636,20 +639,22 @@ const TA_ICONS = {
 // Organ-anchored TAs: side (L/R), button-center y, anchor [ax,ay] on the image.
 const IMGW=278, IMGH=740;
 const ORGAN_TAS = [
-  {ta:'Neurology',                        side:'L', by:60,  ax:139, ay:40 },
-  {ta:'Ophthalmology',                    side:'L', by:150, ax:120, ay:70 },
-  {ta:'Otolaryngology',                   side:'L', by:240, ax:150, ay:95 },
-  {ta:'Cardiovascular',                   side:'L', by:330, ax:150, ay:210},
-  {ta:'Gastrointestinal',                 side:'L', by:430, ax:150, ay:320},
-  {ta:'Musculoskeletal and Rheumatology', side:'L', by:560, ax:96,  ay:470},
-  {ta:'Dental and Oral Health',           side:'R', by:60,  ax:140, ay:78 },
-  {ta:'Endocrine and Metabolic',          side:'R', by:150, ax:140, ay:150},
-  {ta:'Pulmonary and Critical Care',      side:'R', by:255, ax:122, ay:185},
-  {ta:'Dermatology',                      side:'R', by:350, ax:205, ay:260},
-  {ta:'Urology and Nephrology',           side:'R', by:445, ax:165, ay:290},
+  {ta:'Neurology',                        side:'L', by:55,  ax:139, ay:38 },
+  {ta:'Psychology',                       side:'L', by:130, ax:150, ay:55 },
+  {ta:'Ophthalmology',                    side:'L', by:205, ax:120, ay:72 },
+  {ta:'Otolaryngology',                   side:'L', by:280, ax:150, ay:95 },
+  {ta:'Cardiovascular',                   side:'L', by:360, ax:150, ay:210},
+  {ta:'Gastrointestinal',                 side:'L', by:445, ax:150, ay:320},
+  {ta:'Musculoskeletal and Rheumatology', side:'L', by:545, ax:96,  ay:470},
+  {ta:'Dental and Oral Health',           side:'R', by:55,  ax:140, ay:78 },
+  {ta:'Endocrine and Metabolic',          side:'R', by:135, ax:140, ay:150},
+  {ta:'Hematology',                       side:'R', by:215, ax:150, ay:205},
+  {ta:'Pulmonary and Critical Care',      side:'R', by:295, ax:122, ay:185},
+  {ta:'Dermatology',                      side:'R', by:375, ax:205, ay:260},
+  {ta:'Urology and Nephrology',           side:'R', by:455, ax:165, ay:290},
   {ta:"Women's Health",                   side:'R', by:545, ax:140, ay:360}
 ];
-const SYSTEMIC_TAS = ['Oncology','Oncology (blood)','Hematology','Immunology','Infectious Disease','Psychology','Pain','General Medicine','Pediatrics','Trauma, Toxicology, and Emergency Medicine'];
+const SYSTEMIC_TAS = ['Oncology','Oncology (blood)','Immunology','Infectious Disease','Pain','General Medicine','Pediatrics','Trauma, Toxicology, and Emergency Medicine'];
 
 // ── Helpers ────────────────────────────────────────────
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -703,28 +708,31 @@ function buildMap(){
 }
 function taStats(ta){
   const subs=taMap[ta]?taMap[ta].subs:{};
-  let inds=0, tam=0;
-  for(const k in subs){ for(const r of subs[k]){ inds++; tam+=(r.tam||0); } }
-  return {subs:Object.keys(subs).length, inds, tam};
+  let inds=0, tam=0, realtam=0;
+  for(const k in subs){ for(const r of subs[k]){ inds++; tam+=(r.tam||0); realtam+=(r.realtam||0); } }
+  return {subs:Object.keys(subs).length, inds, tam, realtam};
 }
 function subTAM(rows){ let t=0; for(const r of rows) t+=(r.tam||0); return t; }
+function subRealTAM(rows){ let t=0; for(const r of rows) t+=(r.realtam||0); return t; }
 
 // ── Home: stats + body map + systemic panel ────────────
 function renderHome(){
   const totalSubs=new Set(DATA.map(r=>r.subcategory)).size;
   const totalTAM=DATA.reduce((s,r)=>s+(r.tam||0),0);
+  const totalRealTAM=DATA.reduce((s,r)=>s+(r.realtam||0),0);
   document.getElementById('stats-row').innerHTML=`
     <div class="stat"><span class="stat-num">${taList.length}</span><span class="stat-label">Therapeutic Areas</span></div>
     <div class="stat"><span class="stat-num">${totalSubs}</span><span class="stat-label">Subcategories</span></div>
     <div class="stat"><span class="stat-num">${DATA.length.toLocaleString()}</span><span class="stat-label">Disease Indications</span></div>
-    <div class="stat"><span class="stat-num">${fmtTAM(totalTAM)}</span><span class="stat-label">Total TAM</span></div>`;
+    <div class="stat"><span class="stat-num">${fmtTAM(totalTAM)}</span><span class="stat-label">Total TAM</span></div>
+    <div class="stat"><span class="stat-num stat-real">${fmtTAM(totalRealTAM)}</span><span class="stat-label">Realistic TAM</span></div>`;
   renderBodyMap();
   renderSystemic();
 }
 
 function renderBodyMap(){
   const svg=document.getElementById('bodymap-svg');
-  const VBH=560, IMG_H=540, IMG_TOP=10;
+  const VBH=640, IMG_H=620, IMG_TOP=10;
   const s=IMG_H/IMGH;                 // scale from native image space
   const IMG_W=IMGW*s;
   const BW=190, SIDE_GAP=14, EDGE=14; // wider buttons
@@ -736,7 +744,7 @@ function renderBodyMap(){
   const right=ORGAN_TAS.filter(o=>o.side==='R' && taMap[o.ta]);
   function centers(n){
     if(n<=1) return [VBH/2];
-    const top=44, bot=VBH-44, arr=[];
+    const top=42, bot=VBH-42, arr=[];
     for(let i=0;i<n;i++) arr.push(top + i*(bot-top)/(n-1));
     return arr;
   }
@@ -780,7 +788,13 @@ function renderBodyMap(){
 
 function renderSystemic(){
   const list=document.getElementById('systemic-list');
-  const ordered=SYSTEMIC_TAS.filter(t=>taMap[t]).sort((a,b)=>taStats(b).tam-taStats(a).tam);
+  let ordered=SYSTEMIC_TAS.filter(t=>taMap[t]).sort((a,b)=>taStats(b).tam-taStats(a).tam);
+  // Keep "Oncology (blood)" pinned directly below "Oncology" regardless of its TAM rank.
+  const blood='Oncology (blood)';
+  if(ordered.includes(blood) && ordered.includes('Oncology')){
+    ordered=ordered.filter(t=>t!==blood);
+    ordered.splice(ordered.indexOf('Oncology')+1,0,blood);
+  }
   list.innerHTML=ordered.map(ta=>{
     const st=taStats(ta);
     const icon=TA_ICONS[ta]||'💊';
@@ -832,7 +846,7 @@ function showTA(ta, initialSearch=''){
   document.getElementById('detail').style.display='block';
   document.getElementById('detail-title').textContent=ta;
   const st=taStats(ta);
-  document.getElementById('detail-meta').innerHTML=`<span>${st.subs} subcategories</span><span>${st.inds} disease indications</span><span>${fmtTAM(st.tam)} total TAM</span>`;
+  document.getElementById('detail-meta').innerHTML=`<span>${st.subs} subcategories</span><span>${st.inds} disease indications</span><span>${fmtTAM(st.tam)} total TAM</span><span class="meta-real">${fmtTAM(st.realtam)} realistic TAM</span>`;
   const ds=document.getElementById('detail-search');
   ds.value=initialSearch;
   renderTable(ta,initialSearch);
@@ -939,6 +953,7 @@ function renderTable(ta, q){
           <span class="sub-name">${esc(sub)}</span>
           <span class="sub-badge">${rows.length}</span>
           <span class="sub-tam">TAM <b>${fmtTAM(subTAM(rows))}</b></span>
+          <span class="sub-tam sub-realtam">Realistic <b>${fmtTAM(subRealTAM(rows))}</b></span>
           <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </div>
       </td>
