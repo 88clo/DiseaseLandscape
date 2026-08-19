@@ -1010,6 +1010,49 @@ body{overflow-x:hidden}
   .lscape-phys{position:relative;overflow:hidden;padding:0}
   .lscape-phys-scroll{position:absolute;inset:0;overflow-y:auto;padding:8px 6px}
 }
+/* ===== iPhone view tweaks ===== */
+@media (max-width: 640px){
+  /* 1. header title on one line */
+  .logo{white-space:nowrap;font-size:0.9rem;gap:0.25rem;flex:0 0 auto}
+  .logo svg{width:15px;height:15px;flex:0 0 auto}
+  #home-search-wrap{max-width:96px;flex:0 1 96px}
+  /* 2. larger notebook + landscape icons */
+  #notebook-btn svg,#landscape-btn svg{width:22px;height:22px}
+  #notebook-btn,#landscape-btn{padding:0.35rem 0.5rem}
+  /* 3. dark sub-TA rows (match desktop) */
+  .m-sub{background:var(--subhead-bg);color:var(--subhead-fg);border-bottom:none;border-radius:8px;padding:0.42rem 0.6rem;margin:0.85rem 0 0.2rem}
+  .m-sub:first-child{margin-top:0}
+  .m-sub-n{color:var(--subhead-fg)}
+  .m-sub-tam{color:var(--subhead-fg)}
+  /* 4. notebook: keep only the collapse/expand button */
+  .nb-chips-label,.nb-chip,.nb-fl,.nb-fl-sep,.nb-toggle-group{display:none !important}
+  /* 5. taller bar chart (viewBox handled in JS) */
+  .nb-chart-svg{min-width:660px}
+  /* 6. remove physicians panel */
+  .lscape-phys{display:none !important}
+  /* 7. landscape spans full phone width */
+  #landscape{padding-left:0;padding-right:0}
+}
+
+/* ===== best_ideas.json import UI ===== */
+.bi-status{font-size:0.72rem;color:var(--muted);font-weight:600;margin-left:0.3rem}
+.bi-builtin{opacity:0.85}
+.bi-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin:0 0.15rem 0 0.4rem;vertical-align:middle}
+.bi-btn{font-size:0.7rem;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;padding:0 0.3rem;text-decoration:underline}
+.bi-overlay{position:fixed;inset:0;z-index:130;background:rgba(15,25,25,0.5);display:none;align-items:center;justify-content:center;padding:1.5rem;backdrop-filter:blur(2px)}
+.bi-card{background:var(--surface-2);border:1px solid var(--divider);border-radius:14px;width:100%;max-width:520px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.35);overflow:hidden}
+.bi-head{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.1rem;border-bottom:1px solid var(--divider);font-size:1rem}
+.bi-x{background:none;border:none;font-size:1.05rem;color:var(--muted);cursor:pointer}
+.bi-body{padding:1rem 1.1rem;overflow:auto}
+.bi-p{font-size:0.82rem;color:var(--muted);margin:0 0 0.8rem;line-height:1.5}
+.bi-lbl{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);display:block;margin-bottom:0.4rem}
+.bi-or{font-size:0.72rem;color:var(--faint);text-align:center;margin:0.8rem 0 0.5rem}
+.bi-ta{width:100%;min-height:6rem;font-size:0.76rem;font-family:ui-monospace,Menlo,monospace;padding:0.5rem 0.6rem;border:1px solid var(--divider);border-radius:9px;background:var(--surface);color:var(--text);resize:vertical}
+.bi-foot{display:flex;align-items:center;gap:0.6rem;margin-top:0.9rem}
+.bi-flash{flex:1;font-size:0.74rem;color:var(--accent-h);font-weight:700;min-height:1rem}
+.bi-btn2{font-size:0.78rem;font-weight:700;padding:0.4rem 0.9rem;border-radius:9px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff}
+.bi-btn2.ghost{background:var(--surface);color:var(--text);border-color:var(--divider)}
+@media (max-width:640px){ .bi-overlay{align-items:flex-end;padding:0} .bi-card{max-width:100%;border-radius:16px 16px 0 0} }
 </style>
 </head>
 <body>
@@ -4538,36 +4581,35 @@ function nbChartData(){
 function nbChartSvg(){
   const rows=nbChartData();
   const n=rows.length;
-  const W=940,H=168,mL=40,mR=42,mT=16,mB=58, pW=W-mL-mR, pH=H-mT-mB, y0=mT+pH;
+  var MOB=(typeof IS_MOBILE!=='undefined'&&IS_MOBILE);
+  const W=MOB?660:940, H=MOB?300:168, mL=MOB?46:40, mR=MOB?40:42, mT=MOB?20:16, mB=MOB?96:58, pW=W-mL-mR, pH=H-mT-mB, y0=mT+pH;
+  const fA=MOB?11:7.5, fT=MOB?9:6, fL=MOB?11:7.5, lblDrop=MOB?13:9;
   const maxI=Math.max.apply(null,rows.map(r=>r.inds).concat([1]));
   const maxT=Math.max.apply(null,rows.map(r=>r.tam).concat([1]));
-  const indStep=50, tamStep=100000;                 // 50 indications, $100B
+  const indStep=50, tamStep=100000;
   const indMax=Math.max(indStep, Math.ceil(maxI*1.15/indStep)*indStep);
   const tamMax=Math.max(tamStep, Math.ceil(maxT*1.15/tamStep)*tamStep);
-  const gW=pW/n, bW=Math.min(12,gW*0.34);
+  const gW=pW/n, bW=Math.min(MOB?9:12,gW*0.34);
   const teal='var(--accent)', gold='#C98A1E';
-  // LEFT axis = Total US TAM ($B)
   let grid='';
   for(let v=0; v<=tamMax+1; v+=tamStep){ const y=y0-(v/tamMax)*pH;
     grid+=`<line x1="${mL}" y1="${y.toFixed(1)}" x2="${W-mR}" y2="${y.toFixed(1)}" stroke="var(--divider)" stroke-width="0.5"/>`
-        + `<text x="${mL-5}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="7.5" fill="var(--muted)">${v===0?'0':'$'+(v/1000)+'B'}</text>`; }
-  // RIGHT axis = # indications
+        + `<text x="${mL-5}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="${fA}" fill="var(--muted)">${v===0?'0':'$'+(v/1000)+'B'}</text>`; }
   let rightAx='';
   for(let v=0; v<=indMax+1; v+=indStep){ const y=y0-(v/indMax)*pH;
     rightAx+=`<line x1="${W-mR}" y1="${y.toFixed(1)}" x2="${W-mR+3}" y2="${y.toFixed(1)}" stroke="var(--muted)" stroke-width="0.5"/>`
-          + `<text x="${W-mR+6}" y="${(y+3).toFixed(1)}" text-anchor="start" font-size="7.5" fill="var(--muted)">${v}</text>`; }
+          + `<text x="${W-mR+6}" y="${(y+3).toFixed(1)}" text-anchor="start" font-size="${fA}" fill="var(--muted)">${v}</text>`; }
   const topTam=v=> v>=1000? '$'+Math.round(v/1000) : (v>0?'<$1':'0');
   let bars='', tops='', labels='', hits='';
   rows.forEach((r,i)=>{
     const cx=mL+i*gW+gW/2, x1=cx-bW-1, x2=cx+1, c1=x1+bW/2, c2=x2+bW/2;
     const hT=(r.tam/tamMax)*pH, hI=(r.inds/indMax)*pH;
-    // left bar = TAM (gold), right bar = indications (teal)
     bars+=`<rect x="${x1.toFixed(1)}" y="${(y0-hT).toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(0,hT).toFixed(1)}" fill="${gold}" rx="1"><title>${esc(r.ta)}: ${fmtTAM(r.tam)} TAM</title></rect>`
         + `<rect x="${x2.toFixed(1)}" y="${(y0-hI).toFixed(1)}" width="${bW.toFixed(1)}" height="${Math.max(0,hI).toFixed(1)}" fill="${teal}" rx="1"><title>${esc(r.ta)}: ${r.inds} indications</title></rect>`;
-    tops+=`<text x="${c1.toFixed(1)}" y="${(y0-hT-2).toFixed(1)}" text-anchor="middle" font-size="6" fill="#a5741a">${topTam(r.tam)}</text>`
-        + `<text x="${c2.toFixed(1)}" y="${(y0-hI-2).toFixed(1)}" text-anchor="middle" font-size="6" fill="var(--accent-h)">${r.inds}</text>`;
-    labels+=`<text x="${cx.toFixed(1)}" y="${(y0+9).toFixed(1)}" transform="rotate(-45 ${cx.toFixed(1)} ${(y0+9).toFixed(1)})" text-anchor="end" font-size="7.5" fill="var(--muted)">${esc(r.ta)}</text>`;
-    hits+=`<rect class="nb-chart-hit" x="${(mL+i*gW).toFixed(1)}" y="${mT}" width="${gW.toFixed(1)}" height="${(pH+50).toFixed(1)}" fill="transparent" style="cursor:pointer" onclick="nbScrollToTA('${escJs(r.ta)}')"><title>Go to ${esc(r.ta)}</title></rect>`;
+    tops+=`<text x="${c1.toFixed(1)}" y="${(y0-hT-2).toFixed(1)}" text-anchor="middle" font-size="${fT}" fill="#a5741a">${topTam(r.tam)}</text>`
+        + `<text x="${c2.toFixed(1)}" y="${(y0-hI-2).toFixed(1)}" text-anchor="middle" font-size="${fT}" fill="var(--accent-h)">${r.inds}</text>`;
+    labels+=`<text x="${cx.toFixed(1)}" y="${(y0+lblDrop).toFixed(1)}" transform="rotate(-45 ${cx.toFixed(1)} ${(y0+lblDrop).toFixed(1)})" text-anchor="end" font-size="${fL}" fill="var(--muted)">${esc(r.ta)}</text>`;
+    hits+=`<rect class="nb-chart-hit" x="${(mL+i*gW).toFixed(1)}" y="${mT}" width="${gW.toFixed(1)}" height="${(pH+lblDrop+40).toFixed(1)}" fill="transparent" style="cursor:pointer" onclick="nbScrollToTA('${escJs(r.ta)}')"><title>Go to ${esc(r.ta)}</title></rect>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" class="nb-chart-svg" role="img" aria-label="Total US TAM and indications by therapeutic area">${grid}${rightAx}${bars}${tops}${labels}${hits}</svg>`;
 }
@@ -4584,7 +4626,7 @@ function renderNotebook(){
   const shown=body.querySelectorAll('.nb-row').length;
   document.getElementById('notebook-meta').innerHTML=
     `<span>${taList.length} therapeutic areas</span>`+
-    `<span class="meta-inds">${shown.toLocaleString()} indication${shown===1?'':'s'}</span>`;
+    `<span class="meta-inds">${shown.toLocaleString()} indication${shown===1?'':'s'}</span>`+biStatusHtml();
 }
 
 function showHome(){
@@ -5005,6 +5047,104 @@ function showLoadError(msg){
 }
 
 // ── Init ───────────────────────────────────────────────
+/* ===== External best_ideas.json loader (keeps the dashboard a static file) =====
+   Priority on load: saved import (localStorage) -> optional ./best_ideas.json (if served)
+   -> built-in BESTIDEAS_OVERRIDE. Manual import (file or paste) works from file:// too. */
+var BI_KEY='bestideas_override_v1';
+var BI_ORIGINAL=(typeof BESTIDEAS_OVERRIDE!=='undefined')?Object.assign({},BESTIDEAS_OVERRIDE):{};
+var biMeta=null;
+function biNormalize(json){
+  if(!json||typeof json!=='object') throw new Error('JSON must be an object');
+  var ideas=(json.ideas&&typeof json.ideas==='object')?json.ideas:json;
+  var map={}, n=0;
+  Object.keys(ideas).forEach(function(k){
+    var v=ideas[k], t=(typeof v==='string')?v:(v&&typeof v==='object'?v.text:'');
+    if(typeof t==='string'&&t.trim()){ map[k]=t.trim(); n++; }
+  });
+  if(!n) throw new Error('no idea entries found (expected {"ideas":{"Indication":"text"}})');
+  return { map:map, count:n, updated:(json.updated||'') };
+}
+function biApply(map){ if(typeof BESTIDEAS_OVERRIDE!=='undefined') Object.assign(BESTIDEAS_OVERRIDE, map); }
+function biApplyJson(json, source){
+  var norm=biNormalize(json);
+  biApply(norm.map);
+  var prev={}; try{ var raw=localStorage.getItem(BI_KEY); if(raw){ var o=JSON.parse(raw); if(o&&o.map) prev=o.map; } }catch(e){}
+  var merged=Object.assign({}, prev, norm.map);
+  biMeta={ source:source, updated:norm.updated, count:Object.keys(merged).length, appliedAt:new Date().toISOString() };
+  try{ localStorage.setItem(BI_KEY, JSON.stringify({ updated:norm.updated, source:source, appliedAt:biMeta.appliedAt, map:merged })); }catch(e){}
+  biRerender();
+  return norm.count;
+}
+function biLoadFromStorage(){
+  try{
+    var raw=localStorage.getItem(BI_KEY); if(!raw) return;
+    var o=JSON.parse(raw);
+    if(o&&o.map){ biApply(o.map); biMeta={ source:o.source||'saved', updated:o.updated||'', count:Object.keys(o.map).length, appliedAt:o.appliedAt||'' }; }
+  }catch(e){}
+}
+function biTryFetch(){
+  try{
+    fetch('./best_ideas.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(json){
+      var stored=biMeta&&biMeta.updated, incoming=json&&json.updated;
+      if(!biMeta || (incoming&&(!stored||String(incoming)>String(stored)))) biApplyJson(json,'file (auto)');
+    }).catch(function(){});
+  }catch(e){}
+}
+function biStatusHtml(){
+  if(biMeta){ var when=biMeta.updated||(biMeta.appliedAt?String(biMeta.appliedAt).slice(0,10):'');
+    return ' <span class="bi-dot"></span><span class="bi-status">Best ideas updated'+(when?(' '+esc(when)):'')+' \u00b7 '+biMeta.count+' entries</span><button class="bi-btn" onclick="biOpenImport()">Manage</button>'; }
+  return ' <span class="bi-status bi-builtin">Best ideas: built-in</span><button class="bi-btn" onclick="biOpenImport()">Update\u2026</button>';
+}
+function biOpenImport(){
+  var ov=document.getElementById('bi-overlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='bi-overlay'; ov.className='bi-overlay'; ov.onclick=function(e){ if(e.target===ov) biClose(); }; document.body.appendChild(ov); }
+  var status=biMeta?('Currently loaded: '+biMeta.count+' updated ideas'+(biMeta.updated?(' dated '+esc(biMeta.updated)):'')+' ('+esc(biMeta.source)+').'):'Currently using the built-in best ideas.';
+  ov.innerHTML='<div class="bi-card" role="dialog" aria-modal="true" aria-label="Update best ideas">'
+    +'<div class="bi-head"><b>Update best ideas</b><button class="bi-x" onclick="biClose()" aria-label="Close">\u2715</button></div>'
+    +'<div class="bi-body">'
+    +'<p class="bi-p">'+status+' Updates are saved in this browser and persist across reloads.</p>'
+    +'<label class="bi-lbl">Load a best_ideas.json file</label>'
+    +'<input type="file" accept=".json,application/json" onchange="biFromFile(this)">'
+    +'<div class="bi-or">\u2014 or paste JSON \u2014</div>'
+    +'<textarea id="bi-paste" class="bi-ta" placeholder=\'{"updated":"2026-08-19","ideas":{"Food Allergy":"new best idea text\u2026"}}\'></textarea>'
+    +'<div class="bi-foot"><span id="bi-flash" class="bi-flash"></span>'
+    +'<button class="bi-btn2 ghost" onclick="biExport()">Download current</button><button class="bi-btn2 ghost" onclick="biRevert()">Revert to built-in</button>'
+    +'<button class="bi-btn2" onclick="biFromPaste()">Apply pasted JSON</button></div>'
+    +'</div></div>';
+  ov.style.display='flex';
+}
+function biClose(){ var ov=document.getElementById('bi-overlay'); if(ov) ov.style.display='none'; }
+function biFlash(m){ var el=document.getElementById('bi-flash'); if(el){ el.textContent=m; el.style.opacity='1'; setTimeout(function(){ if(el) el.style.opacity='0'; },2400);} }
+function biFromFile(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){ try{ var n=biApplyJson(JSON.parse(rd.result),'file'); biFlash('Loaded '+n+' updated ideas'); }catch(e){ biFlash('Could not read that file: '+e.message); } };
+  rd.onerror=function(){ biFlash('File read failed'); };
+  rd.readAsText(f);
+}
+function biFromPaste(){
+  var ta=document.getElementById('bi-paste'); if(!ta) return;
+  try{ var n=biApplyJson(JSON.parse(ta.value),'paste'); biFlash('Applied '+n+' updated ideas'); }catch(e){ biFlash('Invalid JSON: '+e.message); }
+}
+function biRevert(){
+  if(typeof BESTIDEAS_OVERRIDE!=='undefined'){
+    Object.keys(BESTIDEAS_OVERRIDE).forEach(function(k){ if(!(k in BI_ORIGINAL)) delete BESTIDEAS_OVERRIDE[k]; });
+    Object.assign(BESTIDEAS_OVERRIDE, BI_ORIGINAL);
+  }
+  biMeta=null; try{ localStorage.removeItem(BI_KEY); }catch(e){}
+  biRerender(); biFlash('Reverted to built-in best ideas');
+}
+function biExport(){
+  var ideas={}; if(typeof BESTIDEAS_OVERRIDE!=='undefined') Object.keys(BESTIDEAS_OVERRIDE).forEach(function(k){ ideas[k]=BESTIDEAS_OVERRIDE[k]; });
+  var payload={ updated:new Date().toISOString().slice(0,10), ideas:ideas };
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='best_ideas.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  biFlash('Downloaded best_ideas.json ('+Object.keys(ideas).length+' entries)');
+}
+function biRerender(){ try{ var nb=document.getElementById('notebook'); if(nb&&nb.style.display!=='none'&&typeof renderNotebook==='function') renderNotebook(); }catch(e){} }
+biLoadFromStorage();
+biTryFetch();
+
 (async function init(){
   try{
     DATA=await loadData();
