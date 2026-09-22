@@ -1049,7 +1049,12 @@ body{overflow-x:hidden}
   .m-sub-n{color:var(--subhead-fg)}
   .m-sub-tam{color:var(--subhead-fg)}
   /* 4. notebook: keep only the collapse/expand button */
-  .nb-chips-label,.nb-chip,.nb-fl,.nb-fl-sep,.nb-toggle-group{display:none !important}
+  .nb-chips-label,.nb-chip,.nb-fl,.nb-fl-sep{display:none !important}
+  /* 4b. Keep the toggle-group container visible so Simple View (its one remaining child)
+     can show; hide the other four toggle buttons individually instead of the whole group. */
+  .nb-toggle-group{display:block !important;margin-left:0;width:100%}
+  #nb-hideunattr-btn,#nb-hidenothumb-btn,#nb-rareonly-btn,#nb-starred-btn{display:none !important}
+  #nb-simpleview-btn{display:inline-flex !important;margin:0.4rem 0 0;width:100%;justify-content:center;font-size:0.72rem;padding:0.4rem 0.7rem}
   /* 5. bar chart now sizes itself to the real container width in JS; no forced min-width */
   /* 6. remove physicians panel */
   .lscape-phys{display:none !important}
