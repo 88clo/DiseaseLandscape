@@ -541,6 +541,8 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .nb-srow-wide{grid-column:1/-1}
 .nb-srow-k{font-size:0.6rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.03em}
 .nb-srow-v{font-size:0.78rem;color:var(--text);word-break:break-word}
+.nb-hl{background:#fbf1df;color:#7a5a12;font-weight:700;border-radius:3px;padding:0 0.15em}
+[data-theme="dark"] .nb-hl{background:rgba(226,178,90,0.18);color:#e6c66a}
 .nb-row:last-child{border-bottom:none}
 .nb-row-head{display:flex;align-items:baseline;gap:0.5rem}
 .nb-row-name{font-weight:700;font-size:0.84rem;color:var(--text);flex:1;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -1539,7 +1541,7 @@ function buildMap(){
     if(!taMap[r.ta].subs[r.subcategory]) taMap[r.ta].subs[r.subcategory]=[];
     taMap[r.ta].subs[r.subcategory].push(r);
   }
-  taList=Object.keys(taMap).sort();
+  taList=Object.keys(taMap).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));
 }
 function taStats(ta){
   const subs=taMap[ta]?taMap[ta].subs:{};
@@ -2271,6 +2273,1866 @@ function nbPrevalenceLabel(indication){
   if(ATRISK_SET.has(indication)) return 'at risk';
   return INCIDENCE_SET.has(indication) ? 'incidence' : 'prevalence';
 }
+// Best-selling approved drug per indication, for the Simple View's extra line. salesM = most
+// recent full-year US/global sales in $M; priceYr = annual price per patient; implied patient
+// count is CALCULATED live as salesM*1e6/priceYr, not hard-coded, so it stays consistent if
+// either number is later corrected. Coverage is partial and filled in incrementally.
+// Exact substring within each indication's endpoint text to highlight as the primary endpoint
+// metric. Must match verbatim (case-sensitive) against the rendered endpoint string, since this
+// is matched via simple substring search, not a regex. Coverage is partial and filled in
+// incrementally, same pattern as BEST_SELLER.
+const ENDPOINT_HIGHLIGHT = {
+ "Food Allergy": "tolerated 600mg",
+ "Mastocytosis and Mast Cell Activation Syndrome": "TSS",
+ "Atherosclerosis": "PAV",
+ "Hypertrophic Cardiomyopathy": "composite functional response",
+ "Microvascular Angina": "exercise treadmill time or Seattle Angina Questionnaire",
+ "Acute Heart Failure": "worsening HF events or days alive & out of hospital",
+ "Chronic Heart Failure": "CV death or HF hosp",
+ "Right Heart Failure and Cor Pulmonale": "RV function (TAPSE or RVEF by cMRI) or 6MWD",
+ "Hypertension": "SBP",
+ "Lymphedema": "limb volume reduction",
+ "Myocarditis": "LV function/mass recovery (cMRI)",
+ "Aortic Stenosis": "valve calcium score progression (CT) or aortic valve area decline",
+ "Long QT Interval Syndromes": "QTc reduction or arrhythmic event-free survival",
+ "Dilated Cardiomyopathy": "CV death or HF hosp",
+ "Restrictive Cardiomyopathy": "all-cause mortality",
+ "Acute Myocardial Infarction (MI)": "CV death/MI/stroke",
+ "Abdominal Aortic Aneurysms (AAA)": "aneurysm growth rate (imaging)",
+ "Pericarditis": "recurrence",
+ "Deep Venous Thrombosis (DVT)": "recurrent VTE",
+ "Cardiac Arrest": "neurologically-intact survival at hospital discharge or D90",
+ "Sepsis and Septic Shock": "28-day all-cause mortality",
+ "Caries": "DMFS (decayed/missing/filled surfaces) reduction",
+ "Medication-Related Osteonecrosis of the Jaw (MRONJ)": "complete mucosal healing",
+ "Periodontitis": "clinical attachment level (CAL) gain",
+ "Arthritis of the Temporomandibular Joint (TMJ)": "TMJ pain VAS or mandibular function",
+ "Temporomandibular Myofascial Pain Syndrome": "pain VAS reduction or jaw function score",
+ "Hidradenitis Suppurativa": "HiSCR50",
+ "Urticaria": "complete response (UAS7=0)",
+ "Keloids": "keloid volume reduction (recurrence-free)",
+ "Bullous Pemphigoid": "complete remission off-therapy",
+ "Epidermolysis Bullosa": "complete wound healing",
+ "Pemphigus Vulgaris": "complete remission off tx",
+ "Atopic Dermatitis (Eczema)": "EASI-75",
+ "Alopecia Areata": "SALT≤20",
+ "Granuloma Annulare": "lesion clearance (PGA)",
+ "Vitiligo": "F-VASI75",
+ "Pressure Injuries": "complete wound closure",
+ "Lichen Planus": "clinical clearance (CAILS/PGA score)",
+ "Psoriasis": "PASI90",
+ "Tinnitus": "Tinnitus Functional Index reduction",
+ "Anosmia": "Sniffin' Sticks/UPSIT score improvement",
+ "Hearing Loss": "pure-tone average or speech discrimination improvement",
+ "Drug-Induced Ototoxicity": "hearing loss incidence",
+ "Otosclerosis": "air-bone gap closure",
+ "Nasal Polyps": "nasal polyp score reduction",
+ "Sinusitis": "SNOT-22 improvement",
+ "Cushing Syndrome": "normal mUFC",
+ "Type 2 Diabetes Mellitus": "HbA1c",
+ "Dyslipidemia": "MACE",
+ "Obesity": "mean weight loss",
+ "Hypoparathyroidism": "independence from conventional therapy",
+ "Gigantism and Acromegaly": "IGF-1 normalization (20mg dose)",
+ "Crohn Disease": "clinical remission",
+ "Ulcerative Colitis": "clinical remission",
+ "Celiac Disease": "villus height:crypt depth ratio improvement",
+ "Short Bowel Syndrome": "clinically meaningful PN-volume responder (>20%)",
+ "Prevention of Frailty": "gait speed or SPPB score improvement",
+ "Amyloidosis": "all-cause mortality",
+ "Anemia of Renal Disease": "hemoglobin",
+ "Myelodysplasia and Iron-Transport Deficiency Anemia": "transfusion independence",
+ "Paroxysmal Nocturnal Hemoglobinuria (PNH)": "hemolysis stabilization/transfusion avoidance",
+ "Hereditary Hemorrhagic Telangiectasia": "epistaxis severity score (ESS) reduction",
+ "Hemophilia": "events/yr",
+ "Polycythemia Vera": "hematocrit control+spleen reduction",
+ "Primary Myelofibrosis (PMF)": "spleen volume reduction ≥35%",
+ "Multiple Myeloma": "4-year PFS",
+ "Immune Thrombocytopenia (ITP)": "stable platelet response (≥50K/uL)",
+ "Thrombotic Thrombocytopenic Purpura (TTP)": "composite TTP-related death/exacerbation/thromboembolic event",
+ "Alcohol-Related Liver Disease": "liver fibrosis stage improvement (biopsy/elastography)",
+ "Metabolic Dysfunction-Associated Liver Disease (MASLD)": "NASH resolution w/o fibrosis worsening",
+ "Primary Biliary Cholangitis (PBC)": "biochemical response",
+ "Primary Sclerosing Cholangitis (PSC)": "ALP normalization or fibrosis stage improvement",
+ "Tumors of the Gallbladder and Bile Ducts": "ORR in previously treated patients",
+ "Hepatitis D": "(2mg) / 48.0% (10mg) combined response",
+ "Metabolic Acidosis": "serum bicarbonate normalization + slowed eGFR decline",
+ "Acute Kidney Injury (AKI)": "renal recovery (dialysis-free survival)",
+ "Chronic Kidney Disease": "composite kidney outcome",
+ "Alport Syndrome": "eGFR decline slope",
+ "Focal Segmental Glomerulosclerosis": "FPRE (UPCR≤1.5g/g + >40% reduction)",
+ "Immunoglobulin A Nephropathy": "proteinuria reduction",
+ "Lupus Nephritis": "complete renal response",
+ "Membranous Nephropathy": "complete/partial remission (proteinuria)",
+ "Myeloma-Related Kidney Disease": "renal response in cast nephropathy cohorts",
+ "Multiple System Atrophy": "UMSARS score progression",
+ "Alzheimer Disease": "CDR-SB increase (worsening)",
+ "Chronic Traumatic Encephalopathy (CTE)": "neuropsychiatric symptom score improvement",
+ "Frontotemporal Dementia (FTD)": "CDR-FTLD sum of boxes slowing",
+ "COVID-Related Neuropsychiatric Manifestations": "cognitive/fatigue score improvement",
+ "Migraine": "≥50% responder rate",
+ "Parkinson Disease": "OFF time",
+ "Complex Regional Pain Syndrome (CRPS)": "pain score (NRS) reduction",
+ "Neuropathic Pain": "patients achieve 50% pain reduction",
+ "Amyotrophic Lateral Sclerosis (ALS) and Other Motor Neuron Diseases (MNDs)": "ALSFRS-R decline",
+ "Chronic Inflammatory Demyelinating Polyneuropathy (CIDP)": "INCAT improvement",
+ "Myasthenia Gravis": "MG-ADL responders",
+ "Spinal Muscular Atrophies (SMAs)": "EFS",
+ "Circadian Rhythm Sleep Disorders": "entrainment rate",
+ "Narcolepsy": "change ESS score",
+ "Intracerebral Hemorrhage": "mRS 0-2 functional independence",
+ "Ischemic Stroke": "mRS 0-1",
+ "Non-Hodgkin Lymphomas": "2-yr PFS",
+ "Breast Cancer": "mPFS",
+ "Lung Carcinoma": "mPFS",
+ "Chronic Lymphocytic Leukemia (CLL)": "2-yr PFS",
+ "Prostate Cancer": "18-mo OS",
+ "Squamous Cell Carcinoma": "ORR",
+ "Chronic Myeloid Leukemia (CML)": "MCyR",
+ "Colorectal Cancer": "mPFS",
+ "Melanoma": "mPFS",
+ "Renal Cell Carcinoma": "mPFS",
+ "Lynch Syndrome": "ORR",
+ "Bladder Cancer": "mPFS",
+ "Endometrial Cancer": "2-yr PFS",
+ "Oral Squamous Cell Carcinoma": "mOS",
+ "Myelodysplastic Syndromes (MDS)": "mOS",
+ "Acute Myeloid Leukemia (AML)": "mOS",
+ "Acute Lymphoblastic Leukemia (ALL)": "mOS",
+ "Cachexia in Cancer": "mLBM increase",
+ "Hepatocellular Carcinoma": "1-yr OS",
+ "Stomach Cancer": "mOS",
+ "Ovarian, Fallopian Tube, and Peritoneal Cancer": "mPFS",
+ "Oropharyngeal Squamous Cell Carcinoma": "mOS (CPS≥1)",
+ "Hodgkin Lymphoma": "6-yr OS (A+AVD)",
+ "Gliomas": "mPFS",
+ "Pancreatic Cancer": "mOS",
+ "Preeclampsia and Eclampsia": "eclampsia incidence",
+ "Preterm Labor": "delivery within 48h",
+ "Endometriosis": "dysmenorrhea responders",
+ "Recurrent Pregnancy Loss": "live birth rate (LBR) at delivery/W37",
+ "Menopause": "daily VMS frequency reduction",
+ "Postpartum Depression": "HAMD-17 reduction",
+ "Uterine Fibroids": "MBL responders",
+ "Bacterial Vaginosis (BV)": "clinical cure rate",
+ "Candidal Vaginitis": "complete clinical response",
+ "Blepharitis": "complete mite eradication (≤2 mites)",
+ "Hereditary Optic Neuropathies": "LogMAR change in BCVA",
+ "Inflammatory Orbital Disease": "proptosis response (≥2mm reduction)",
+ "Age-Related Macular Degeneration (AMD or ARMD)": "maintained vision (<15 letter loss)",
+ "Central Retinal Artery Occlusion and Branch Retinal Artery Occlusion": "proportion of patients with ≥15-letter gain in BCVA",
+ "Diabetic Retinopathy": "≥2-step DRSS improvement",
+ "Retinitis Pigmentosa": "multiluminance mobility test (MLMT) Lux score gain",
+ "Uveitis Caused by Systemic Rheumatic Disease": "treatment failure rate",
+ "Down Syndrome (Trisomy 21)": "cognitive score (Cantab PAL or Vineland-3)",
+ "Fragile X Syndrome": "ABC-CFXS score",
+ "Cystic Fibrosis": "ppFEV1 improvement",
+ "Gaucher Disease": "hemoglobin",
+ "Metachromatic Leukodystrophy": "survival and walking independence rate (late-infantile cohort)",
+ "Facioscapulohumeral Muscular Dystrophy": "Reachable Workspace (RWS) surface area or muscle MRI fat fraction",
+ "Limb-Girdle Dystrophy": "NSAD or 10MWT",
+ "Attention-Deficit/Hyperactivity Disorder (ADHD)": "change ADHD-RS-IV total score",
+ "Autism Spectrum Disorder": "change ABC-I subscale score",
+ "Intellectual Disability": "VABS Adaptive Behavior Composite",
+ "Hearing Impairment in Children": "change in Auditory Brainstem Response (ABR) threshold (dB HL) or speech perception score",
+ "Tuberous Sclerosis Complex (TSC)": "angiomyolipoma response rate (≥50% volume reduction)",
+ "Cerebral Palsy (CP)": "change modified Ashworth Scale (MAS) ankle score",
+ "Acute and Posttraumatic Stress Disorders (ASD and PTSD) in Children and Adolescents": "change in Child PTSD Symptom Scale (CPSS-5) score",
+ "Depressive Disorders in Children and Adolescents": "CGI-Improvement response rate",
+ "Wheezing and Asthma in Infants and Young Children": "change daily asthma symptom score",
+ "Acute Stress Disorder": "CAPS-5 total severity score",
+ "Posttraumatic Stress Disorder (PTSD)": "CAPS-2 reduction",
+ "Anorexia Nervosa": "BMI or % expected body weight",
+ "Bipolar Disorders": "YMRS reduction",
+ "Depressive Disorders": "MADRS reduction",
+ "Obsessive-Compulsive Disorder (OCD)": "Y-BOCS reduction",
+ "Opioid Use Disorder": "mean percentage abstinence",
+ "Borderline Personality Disorder (BPD)": "ZAN-BPD",
+ "Schizophrenia": "PANSS reduction",
+ "Suicidal Behavior": "MADRS reduction",
+ "Asthma": "annualized moderate/severe exacerbation rate",
+ "Bronchiectasis": "annualized pulmonary exacerbations",
+ "Alpha-1 Antitrypsin Deficiency": "g/L/yr lung density loss",
+ "Chronic Obstructive Pulmonary Disease (COPD)": "annualized moderate/severe exacerbation rate",
+ "Idiopathic Pulmonary Fibrosis (IPF)": "FVC decline",
+ "Pneumonia in Immunocompromised Patients": "clinical response/survival rate",
+ "Obstructive Sleep Apnea (OSA)": "events/hr AHI reduction",
+ "Fibromyalgia": "pain reduction",
+ "Gout": "serum uric acid <6.0mg/dL rate",
+ "Ankylosing Spondylitis": "ASAS20",
+ "Osteoarthritis (OA)": "WOMAC Pain score reduction",
+ "Psoriatic Arthritis": "ACR20",
+ "Rheumatoid Arthritis (RA)": "ACR20",
+ "Osteoporosis": "new vertebral fracture incidence",
+ "Sjögren Syndrome": "ESSDAI",
+ "Systemic Lupus Erythematosus (SLE)": "BICLA response",
+ "Systemic Sclerosis": "FVC decline",
+ "Giant Cell Arteritis": "sustained glucocorticoid-free remission",
+ "Chronic Fatigue Syndrome": "Fatigue Severity Scale (FSS) or SF-36 Physical Functioning score",
+ "Alcohol Use Disorder and Rehabilitation": "heavy drinking days",
+ "Smoking and Other Tobacco Use": "continuous abstinence",
+ "Benign Prostatic Hyperplasia": "Boyarsky Symptom Score reduction",
+ "Prostatitis": "microbiological eradication",
+ "Peyronie Disease": "degrees penile curvature (-34.0%)",
+ "Urethral Stricture": "stricture-free patency",
+ "Urinary Calculi": "annualized stone formation",
+ "Interstitial Cystitis": "overall symptom response rate (>50% pain relief)",
+ "Urinary Incontinence in Adults": "objective cure",
+ "Protein-Energy Undernutrition (PEU)": "nutritional recovery",
+ "Anaphylaxis": "Tmax",
+ "Hereditary and Acquired C1 Inhibitor Deficiency or Dysfunction": "mean monthly HAE attack-rate reduction",
+ "Atrial Fibrillation": "conversion to sinus rhythm",
+ "Seborrheic Dermatitis": "clearance",
+ "Alopecia": "hair count increase",
+ "Lice": "lice-free rate",
+ "Meniere Disease": "control symptoms",
+ "Type 1 Diabetes Mellitus": "peak C-peptide",
+ "Anorectal Fistula": "combined remission",
+ "Gastroesophageal Reflux Disease (GERD)": "healing rate",
+ "Helicobacter pylori Infection": "eradication rate",
+ "Irritable Bowel Syndrome (IBS)": "composite response",
+ "Anemia of Chronic Disease": "Hb",
+ "Autoimmune Hemolytic Anemia": "hemoglobin normalization",
+ "Sickle Cell Disease": "VOC-free",
+ "Thalassemias": "transfusion independence",
+ "Essential Thrombocythemia": "platelet count control",
+ "Antiphospholipid Syndrome (APS)": "recurrent thrombosis",
+ "Hepatitis B, Chronic": "HBV DNA undetectable",
+ "Autosomal Dominant Polycystic Kidney Disease (ADPKD)": "eGFR decline",
+ "Diabetic Nephropathy": "composite kidney endpoint",
+ "Minimal Change Disease": "remission rate",
+ "Multiple Sclerosis (MS)": "annualized relapse rate",
+ "Peripheral Neuropathy": "pain reduction",
+ "Basal Cell Carcinoma": "ORR",
+ "Meningiomas": "PFS",
+ "Cataract": "BCVA",
+ "Osteochondrodysplasias (Osteochondrodysplastic Dwarfism)": "annualized growth velocity",
+ "Duchenne Muscular Dystrophy and Becker Muscular Dystrophy": "6MWD decline",
+ "Neurofibromatosis": "ORR",
+ "Pulmonary Hypertension": "6MWD improvement"
+};
+// Wraps the first literal occurrence of `needle` inside `text` (already escaped for HTML) in a
+// highlight span. Falls back to the plain escaped text untouched if `needle` is missing/absent.
+function nbHighlightSubstr(text, needle){
+  const esc_text = esc(text);
+  if(!needle) return esc_text;
+  const esc_needle = esc(needle);
+  const idx = esc_text.indexOf(esc_needle);
+  if(idx<0) return esc_text;
+  return esc_text.slice(0,idx) + '<span class="nb-hl">' + esc_needle + '</span>' + esc_text.slice(idx+esc_needle.length);
+}
+const BEST_SELLER = {
+ "Anaphylaxis": {
+  "drug": "EpiPen",
+  "salesM": 391,
+  "salesYr": "2025",
+  "priceYr": 500,
+  "approved": "1987"
+ },
+ "Food Allergy": {
+  "drug": "Xolair",
+  "salesM": 3700,
+  "salesYr": "2025",
+  "priceYr": 45000,
+  "approved": "2003"
+ },
+ "Hereditary and Acquired C1 Inhibitor Deficiency or Dysfunction": {
+  "drug": "Takhzyro",
+  "salesM": 1400,
+  "salesYr": "2025",
+  "priceYr": 635000,
+  "approved": "2018"
+ },
+ "Mastocytosis and Mast Cell Activation Syndrome": {
+  "drug": "Ayvakit",
+  "salesM": 710,
+  "salesYr": "2025",
+  "priceYr": 490000,
+  "approved": "2020"
+ },
+ "Long QT Interval Syndromes": {
+  "drug": "Propranolol",
+  "salesM": 15,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1967"
+ },
+ "Atherosclerosis": {
+  "drug": "Repatha",
+  "salesM": 3000,
+  "salesYr": "2025",
+  "priceYr": 6000,
+  "approved": "2015"
+ },
+ "Dilated Cardiomyopathy": {
+  "drug": "Entresto",
+  "salesM": 7800,
+  "salesYr": "2025",
+  "priceYr": 4500,
+  "approved": "2015"
+ },
+ "Hypertrophic Cardiomyopathy": {
+  "drug": "Camzyos",
+  "salesM": 1000,
+  "salesYr": "2025",
+  "priceYr": 104000,
+  "approved": "2022"
+ },
+ "Restrictive Cardiomyopathy": {
+  "drug": "Vyndaqel",
+  "salesM": 5200,
+  "salesYr": "2025",
+  "priceYr": 250000,
+  "approved": "2019"
+ },
+ "Acute Myocardial Infarction (MI)": {
+  "drug": "Brilinta",
+  "salesM": 1300,
+  "salesYr": "2025",
+  "priceYr": 4500,
+  "approved": "2011"
+ },
+ "Microvascular Angina": {
+  "drug": "Ranexa",
+  "salesM": 700,
+  "salesYr": "2025",
+  "priceYr": 4800,
+  "approved": "2006"
+ },
+ "Abdominal Aortic Aneurysms (AAA)": {
+  "drug": "Lipitor",
+  "salesM": 1600,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1996"
+ },
+ "Acute Heart Failure": {
+  "drug": "Lasix",
+  "salesM": 250,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1966"
+ },
+ "Chronic Heart Failure": {
+  "drug": "Farxiga",
+  "salesM": 7600,
+  "salesYr": "2025",
+  "priceYr": 6600,
+  "approved": "2014"
+ },
+ "Right Heart Failure and Cor Pulmonale": {
+  "drug": "Revatio",
+  "salesM": 450,
+  "salesYr": "2025",
+  "priceYr": 12000,
+  "approved": "2005"
+ },
+ "Hypertension": {
+  "drug": "Zestril",
+  "salesM": 400,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1987"
+ },
+ "Lymphedema": {
+  "drug": "Coumadin",
+  "salesM": 150,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1954"
+ },
+ "Myocarditis": {
+  "drug": "Gamunex-C",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 10000,
+  "approved": "1981"
+ },
+ "Pericarditis": {
+  "drug": "Arcalyst",
+  "salesM": 420,
+  "salesYr": "2025",
+  "priceYr": 250000,
+  "approved": "2008"
+ },
+ "Deep Venous Thrombosis (DVT)": {
+  "drug": "Xarelto",
+  "salesM": 6000,
+  "salesYr": "2025",
+  "priceYr": 6500,
+  "approved": "2011"
+ },
+ "Atrial Fibrillation": {
+  "drug": "Eliquis",
+  "salesM": 14200,
+  "salesYr": "2025",
+  "priceYr": 6800,
+  "approved": "2012"
+ },
+ "Aortic Stenosis": {
+  "drug": "SAPIEN 3",
+  "salesM": 4200,
+  "salesYr": "2025",
+  "priceYr": 32000,
+  "approved": "2011"
+ },
+ "Cardiac Arrest": {
+  "drug": "Epinephrine",
+  "salesM": 2480,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1901"
+ },
+ "Sepsis and Septic Shock": {
+  "drug": "Levophed",
+  "salesM": 1800,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "1950"
+ },
+ "Caries": {
+  "drug": "Prevident 5000",
+  "salesM": 220,
+  "salesYr": "2025",
+  "priceYr": 120,
+  "approved": "1998"
+ },
+ "Medication-Related Osteonecrosis of the Jaw (MRONJ)": {
+  "drug": "Forteo",
+  "salesM": 480,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "2002"
+ },
+ "Periodontitis": {
+  "drug": "Arestin",
+  "salesM": 110,
+  "salesYr": "2025",
+  "priceYr": 2000,
+  "approved": "2001"
+ },
+ "Xerostomia": {
+  "drug": "Salagen",
+  "salesM": 85,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "1994"
+ },
+ "Arthritis of the Temporomandibular Joint (TMJ)": {
+  "drug": "Voltaren",
+  "salesM": 650,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1988"
+ },
+ "Temporomandibular Myofascial Pain Syndrome": {
+  "drug": "Flexeril",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1977"
+ },
+ "Hidradenitis Suppurativa": {
+  "drug": "Humira",
+  "salesM": 6200,
+  "salesYr": "2025",
+  "priceYr": 84000,
+  "approved": "2002"
+ },
+ "Urticaria": {
+  "drug": "Xolair",
+  "salesM": 3700,
+  "salesYr": "2025",
+  "priceYr": 45000,
+  "approved": "2003"
+ },
+ "Keloids": {
+  "drug": "Kenalog-40",
+  "salesM": 140,
+  "salesYr": "2025",
+  "priceYr": 500,
+  "approved": "1958"
+ },
+ "Bullous Pemphigoid": {
+  "drug": "Rituxan",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "1997"
+ },
+ "Epidermolysis Bullosa": {
+  "drug": "Vyjuvek",
+  "salesM": 280,
+  "salesYr": "2025",
+  "priceYr": 630000,
+  "approved": "2023"
+ },
+ "Pemphigus Vulgaris": {
+  "drug": "Rituxan",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "1997"
+ },
+ "Atopic Dermatitis (Eczema)": {
+  "drug": "Dupixent",
+  "salesM": 16100,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "2017"
+ },
+ "Seborrheic Dermatitis": {
+  "drug": "Zoryve",
+  "salesM": 310,
+  "salesYr": "2025",
+  "priceYr": 10000,
+  "approved": "2022"
+ },
+ "Alopecia": {
+  "drug": "Propecia",
+  "salesM": 160,
+  "salesYr": "2025",
+  "priceYr": 800,
+  "approved": "1997"
+ },
+ "Alopecia Areata": {
+  "drug": "Olumiant",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 30000,
+  "approved": "2018"
+ },
+ "Granuloma Annulare": {
+  "drug": "Protopic",
+  "salesM": 90,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "2000"
+ },
+ "Lice": {
+  "drug": "Sklice",
+  "salesM": 65,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "2012"
+ },
+ "Vitiligo": {
+  "drug": "Opzelura",
+  "salesM": 520,
+  "salesYr": "2025",
+  "priceYr": 24000,
+  "approved": "2021"
+ },
+ "Pressure Injuries": {
+  "drug": "Santyl",
+  "salesM": 290,
+  "salesYr": "2025",
+  "priceYr": 2500,
+  "approved": "1965"
+ },
+ "Lichen Planus": {
+  "drug": "Clobetasol",
+  "salesM": 210,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "1985"
+ },
+ "Psoriasis": {
+  "drug": "Skyrizi",
+  "salesM": 16000,
+  "salesYr": "2025",
+  "priceYr": 79000,
+  "approved": "2019"
+ },
+ "Cushing Syndrome": {
+  "drug": "Korlym",
+  "salesM": 580,
+  "salesYr": "2025",
+  "priceYr": 300000,
+  "approved": "2012"
+ },
+ "Type 1 Diabetes Mellitus": {
+  "drug": "Lantus",
+  "salesM": 2200,
+  "salesYr": "2025",
+  "priceYr": 4200,
+  "approved": "2000"
+ },
+ "Type 2 Diabetes Mellitus": {
+  "drug": "Mounjaro",
+  "salesM": 22965,
+  "salesYr": "2025",
+  "priceYr": 12000,
+  "approved": "2022"
+ },
+ "Dyslipidemia": {
+  "drug": "Lipitor",
+  "salesM": 1600,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1996"
+ },
+ "Obesity": {
+  "drug": "Zepbound",
+  "salesM": 13500,
+  "salesYr": "2025",
+  "priceYr": 13000,
+  "approved": "2023"
+ },
+ "Hypoparathyroidism": {
+  "drug": "Natpara",
+  "salesM": 210,
+  "salesYr": "2025",
+  "priceYr": 120000,
+  "approved": "2015"
+ },
+ "Gigantism and Acromegaly": {
+  "drug": "Somatuline Depot",
+  "salesM": 1300,
+  "salesYr": "2025",
+  "priceYr": 110000,
+  "approved": "2007"
+ },
+ "Hypothyroidism": {
+  "drug": "Synthroid",
+  "salesM": 800,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1955"
+ },
+ "Tinnitus": {
+  "drug": "Tegretol",
+  "salesM": 120,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1968"
+ },
+ "Anosmia": {
+  "drug": "Flonase",
+  "salesM": 350,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1990"
+ },
+ "Hearing Loss": {
+  "drug": "Prednisone",
+  "salesM": 200,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1955"
+ },
+ "Drug-Induced Ototoxicity": {
+  "drug": "N-Acetylcysteine",
+  "salesM": 80,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1963"
+ },
+ "Meniere Disease": {
+  "drug": "Antivert",
+  "salesM": 95,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1957"
+ },
+ "Otosclerosis": {
+  "drug": "Sodium Fluoride",
+  "salesM": 15,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1960"
+ },
+ "Nasal Polyps": {
+  "drug": "Nucala",
+  "salesM": 1800,
+  "salesYr": "2025",
+  "priceYr": 42000,
+  "approved": "2015"
+ },
+ "Sinusitis": {
+  "drug": "Augmentin",
+  "salesM": 450,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1984"
+ },
+ "Anorectal Fistula": {
+  "drug": "Remicade",
+  "salesM": 1400,
+  "salesYr": "2025",
+  "priceYr": 30000,
+  "approved": "1998"
+ },
+ "Gastroesophageal Reflux Disease (GERD)": {
+  "drug": "Dexilant",
+  "salesM": 550,
+  "salesYr": "2025",
+  "priceYr": 3600,
+  "approved": "2009"
+ },
+ "Helicobacter pylori Infection": {
+  "drug": "Voquezna",
+  "salesM": 280,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "2023"
+ },
+ "Crohn Disease": {
+  "drug": "Stelara",
+  "salesM": 10500,
+  "salesYr": "2025",
+  "priceYr": 150000,
+  "approved": "2009"
+ },
+ "Ulcerative Colitis": {
+  "drug": "Entyvio",
+  "salesM": 6200,
+  "salesYr": "2025",
+  "priceYr": 50000,
+  "approved": "2014"
+ },
+ "Irritable Bowel Syndrome (IBS)": {
+  "drug": "Linzess",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 6000,
+  "approved": "2012"
+ },
+ "Celiac Disease": {
+  "drug": "Glutenase",
+  "salesM": 0,
+  "salesYr": "2025",
+  "priceYr": 0,
+  "approved": "N/A"
+ },
+ "Short Bowel Syndrome": {
+  "drug": "Gattex",
+  "salesM": 850,
+  "salesYr": "2025",
+  "priceYr": 500000,
+  "approved": "2012"
+ },
+ "Prevention of Frailty": {
+  "drug": "Reclast",
+  "salesM": 210,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "2007"
+ },
+ "Amyloidosis": {
+  "drug": "Vyndaqel",
+  "salesM": 6380,
+  "salesYr": "2025",
+  "priceYr": 250000,
+  "approved": "2019"
+ },
+ "Anemia of Chronic Disease": {
+  "drug": "Epogen",
+  "salesM": 650,
+  "salesYr": "2025",
+  "priceYr": 10000,
+  "approved": "1989"
+ },
+ "Anemia of Renal Disease": {
+  "drug": "Aranesp",
+  "salesM": 1300,
+  "salesYr": "2025",
+  "priceYr": 12000,
+  "approved": "2001"
+ },
+ "Myelodysplasia and Iron-Transport Deficiency Anemia": {
+  "drug": "Reblozyl",
+  "salesM": 1600,
+  "salesYr": "2025",
+  "priceYr": 170000,
+  "approved": "2019"
+ },
+ "Autoimmune Hemolytic Anemia": {
+  "drug": "Rituxan",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "1997"
+ },
+ "Paroxysmal Nocturnal Hemoglobinuria (PNH)": {
+  "drug": "Ultomiris",
+  "salesM": 4718,
+  "salesYr": "2025",
+  "priceYr": 500000,
+  "approved": "2018"
+ },
+ "Sickle Cell Disease": {
+  "drug": "Endari",
+  "salesM": 110,
+  "salesYr": "2025",
+  "priceYr": 30000,
+  "approved": "2017"
+ },
+ "Thalassemias": {
+  "drug": "Reblozyl",
+  "salesM": 1600,
+  "salesYr": "2025",
+  "priceYr": 170000,
+  "approved": "2019"
+ },
+ "Hereditary Hemorrhagic Telangiectasia": {
+  "drug": "Avastin",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 100000,
+  "approved": "2004"
+ },
+ "Hemophilia": {
+  "drug": "Hemlibra",
+  "salesM": 5100,
+  "salesYr": "2025",
+  "priceYr": 490000,
+  "approved": "2017"
+ },
+ "Essential Thrombocythemia": {
+  "drug": "Jakafi",
+  "salesM": 2700,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2011"
+ },
+ "Polycythemia Vera": {
+  "drug": "Jakafi",
+  "salesM": 2700,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2011"
+ },
+ "Primary Myelofibrosis (PMF)": {
+  "drug": "Jakafi",
+  "salesM": 2700,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2011"
+ },
+ "Multiple Myeloma": {
+  "drug": "Darzalex",
+  "salesM": 11700,
+  "salesYr": "2025",
+  "priceYr": 150000,
+  "approved": "2015"
+ },
+ "Immune Thrombocytopenia (ITP)": {
+  "drug": "Nplate",
+  "salesM": 1400,
+  "salesYr": "2025",
+  "priceYr": 80000,
+  "approved": "2008"
+ },
+ "Thrombotic Thrombocytopenic Purpura (TTP)": {
+  "drug": "Cablivi",
+  "salesM": 260,
+  "salesYr": "2025",
+  "priceYr": 270000,
+  "approved": "2019"
+ },
+ "Antiphospholipid Syndrome (APS)": {
+  "drug": "Coumadin",
+  "salesM": 150,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1954"
+ },
+ "Alcohol-Related Liver Disease": {
+  "drug": "Zofran",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1991"
+ },
+ "Metabolic Dysfunction-Associated Liver Disease (MASLD)": {
+  "drug": "Rezdiffra",
+  "salesM": 958,
+  "salesYr": "2025",
+  "priceYr": 47000,
+  "approved": "2024"
+ },
+ "Primary Biliary Cholangitis (PBC)": {
+  "drug": "Iqirvo",
+  "salesM": 208,
+  "salesYr": "2025",
+  "priceYr": 138000,
+  "approved": "2024"
+ },
+ "Primary Sclerosing Cholangitis (PSC)": {
+  "drug": "Ursodiol",
+  "salesM": 120,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "1997"
+ },
+ "Tumors of the Gallbladder and Bile Ducts": {
+  "drug": "Imfinzi",
+  "salesM": 4800,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2017"
+ },
+ "Hepatitis B, Chronic": {
+  "drug": "Vemlidy",
+  "salesM": 520,
+  "salesYr": "2025",
+  "priceYr": 15000,
+  "approved": "2016"
+ },
+ "Hepatitis D": {
+  "drug": "Hepcludex",
+  "salesM": 140,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2020"
+ },
+ "Metabolic Acidosis": {
+  "drug": "Veverimer",
+  "salesM": 0,
+  "salesYr": "2025",
+  "priceYr": 0,
+  "approved": "N/A"
+ },
+ "Acute Kidney Injury (AKI)": {
+  "drug": "Lasix",
+  "salesM": 250,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1966"
+ },
+ "Chronic Kidney Disease": {
+  "drug": "Kerendia",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 7000,
+  "approved": "2021"
+ },
+ "Autosomal Dominant Polycystic Kidney Disease (ADPKD)": {
+  "drug": "Jynarque",
+  "salesM": 1300,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2018"
+ },
+ "Alport Syndrome": {
+  "drug": "Farxiga",
+  "salesM": 7600,
+  "salesYr": "2025",
+  "priceYr": 6600,
+  "approved": "2014"
+ },
+ "Diabetic Nephropathy": {
+  "drug": "Farxiga",
+  "salesM": 7600,
+  "salesYr": "2025",
+  "priceYr": 6600,
+  "approved": "2014"
+ },
+ "Focal Segmental Glomerulosclerosis": {
+  "drug": "Prednisone",
+  "salesM": 200,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1955"
+ },
+ "Immunoglobulin A Nephropathy": {
+  "drug": "Filspari",
+  "salesM": 322,
+  "salesYr": "2025",
+  "priceYr": 120000,
+  "approved": "2023"
+ },
+ "Lupus Nephritis": {
+  "drug": "Lupkynis",
+  "salesM": 271,
+  "salesYr": "2025",
+  "priceYr": 130000,
+  "approved": "2021"
+ },
+ "Membranous Nephropathy": {
+  "drug": "Rituxan",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "1997"
+ },
+ "Minimal Change Disease": {
+  "drug": "Prednisone",
+  "salesM": 200,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1955"
+ },
+ "Myeloma-Related Kidney Disease": {
+  "drug": "Darzalex",
+  "salesM": 11700,
+  "salesYr": "2025",
+  "priceYr": 150000,
+  "approved": "2015"
+ },
+ "Multiple System Atrophy": {
+  "drug": "Northera",
+  "salesM": 220,
+  "salesYr": "2025",
+  "priceYr": 30000,
+  "approved": "2014"
+ },
+ "Alzheimer Disease": {
+  "drug": "Leqembi",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 26500,
+  "approved": "2023"
+ },
+ "Chronic Traumatic Encephalopathy (CTE)": {
+  "drug": "Seroquel",
+  "salesM": 300,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "1997"
+ },
+ "Frontotemporal Dementia (FTD)": {
+  "drug": "Namenda",
+  "salesM": 150,
+  "salesYr": "2025",
+  "priceYr": 400,
+  "approved": "2003"
+ },
+ "Multiple Sclerosis (MS)": {
+  "drug": "Ocrevus",
+  "salesM": 7200,
+  "salesYr": "2025",
+  "priceYr": 80000,
+  "approved": "2017"
+ },
+ "COVID-Related Neuropsychiatric Manifestations": {
+  "drug": "Paxlovid",
+  "salesM": 2100,
+  "salesYr": "2025",
+  "priceYr": 1400,
+  "approved": "2021"
+ },
+ "Migraine": {
+  "drug": "Nurtec ODT",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 11000,
+  "approved": "2020"
+ },
+ "Parkinson Disease": {
+  "drug": "Inbrija",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 12000,
+  "approved": "2018"
+ },
+ "Complex Regional Pain Syndrome (CRPS)": {
+  "drug": "Lyrica",
+  "salesM": 450,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "2004"
+ },
+ "Neuropathic Pain": {
+  "drug": "Lyrica",
+  "salesM": 450,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "2004"
+ },
+ "Amyotrophic Lateral Sclerosis (ALS) and Other Motor Neuron Diseases (MNDs)": {
+  "drug": "Radicava",
+  "salesM": 280,
+  "salesYr": "2025",
+  "priceYr": 170000,
+  "approved": "2017"
+ },
+ "Chronic Inflammatory Demyelinating Polyneuropathy (CIDP)": {
+  "drug": "Vyvgart",
+  "salesM": 2400,
+  "salesYr": "2025",
+  "priceYr": 450000,
+  "approved": "2021"
+ },
+ "Myasthenia Gravis": {
+  "drug": "Vyvgart",
+  "salesM": 2400,
+  "salesYr": "2025",
+  "priceYr": 450000,
+  "approved": "2021"
+ },
+ "Peripheral Neuropathy": {
+  "drug": "Gabapentin",
+  "salesM": 320,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1993"
+ },
+ "Spinal Muscular Atrophies (SMAs)": {
+  "drug": "Spinraza",
+  "salesM": 1600,
+  "salesYr": "2025",
+  "priceYr": 375000,
+  "approved": "2016"
+ },
+ "Circadian Rhythm Sleep Disorders": {
+  "drug": "Hetlioz",
+  "salesM": 160,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2014"
+ },
+ "Narcolepsy": {
+  "drug": "Xywav",
+  "salesM": 1400,
+  "salesYr": "2025",
+  "priceYr": 110000,
+  "approved": "2020"
+ },
+ "Intracerebral Hemorrhage": {
+  "drug": "Andexxa",
+  "salesM": 190,
+  "salesYr": "2025",
+  "priceYr": 25000,
+  "approved": "2018"
+ },
+ "Ischemic Stroke": {
+  "drug": "Activase",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 10000,
+  "approved": "1987"
+ },
+ "Protein-Energy Undernutrition (PEU)": {
+  "drug": "Megace",
+  "salesM": 45,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1993"
+ },
+ "Preeclampsia and Eclampsia": {
+  "drug": "Magnesium Sulfate",
+  "salesM": 45,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1950"
+ },
+ "Preterm Labor": {
+  "drug": "Procardia",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1981"
+ },
+ "Endometriosis": {
+  "drug": "Orilissa",
+  "salesM": 270,
+  "salesYr": "2025",
+  "priceYr": 13000,
+  "approved": "2018"
+ },
+ "Recurrent Pregnancy Loss": {
+  "drug": "Lovenox",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 3000,
+  "approved": "1993"
+ },
+ "Menopause": {
+  "drug": "Veozah",
+  "salesM": 480,
+  "salesYr": "2025",
+  "priceYr": 6600,
+  "approved": "2023"
+ },
+ "Postpartum Depression": {
+  "drug": "Zurzuvae",
+  "salesM": 140,
+  "salesYr": "2025",
+  "priceYr": 16000,
+  "approved": "2023"
+ },
+ "Uterine Fibroids": {
+  "drug": "Myfembree",
+  "salesM": 190,
+  "salesYr": "2025",
+  "priceYr": 12000,
+  "approved": "2021"
+ },
+ "Bacterial Vaginosis (BV)": {
+  "drug": "Metrogel-Vaginal",
+  "salesM": 110,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1992"
+ },
+ "Candidal Vaginitis": {
+  "drug": "Diflucan",
+  "salesM": 240,
+  "salesYr": "2025",
+  "priceYr": 50,
+  "approved": "1990"
+ },
+ "Non-Hodgkin Lymphomas": {
+  "drug": "Imbruvica",
+  "salesM": 2400,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2013"
+ },
+ "Breast Cancer": {
+  "drug": "Verzenio",
+  "salesM": 5700,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2017"
+ },
+ "Lung Carcinoma": {
+  "drug": "Keytruda",
+  "salesM": 31700,
+  "salesYr": "2025",
+  "priceYr": 185000,
+  "approved": "2014"
+ },
+ "Chronic Lymphocytic Leukemia (CLL)": {
+  "drug": "Calquence",
+  "salesM": 3200,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2017"
+ },
+ "Prostate Cancer": {
+  "drug": "Nubeqa",
+  "salesM": 2100,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2019"
+ },
+ "Squamous Cell Carcinoma": {
+  "drug": "Keytruda",
+  "salesM": 31700,
+  "salesYr": "2025",
+  "priceYr": 185000,
+  "approved": "2014"
+ },
+ "Chronic Myeloid Leukemia (CML)": {
+  "drug": "Tasigna",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2007"
+ },
+ "Colorectal Cancer": {
+  "drug": "Avastin",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 100000,
+  "approved": "2004"
+ },
+ "Melanoma": {
+  "drug": "Keytruda",
+  "salesM": 31700,
+  "salesYr": "2025",
+  "priceYr": 185000,
+  "approved": "2014"
+ },
+ "Renal Cell Carcinoma": {
+  "drug": "Opdivo",
+  "salesM": 10000,
+  "salesYr": "2025",
+  "priceYr": 190000,
+  "approved": "2014"
+ },
+ "Lynch Syndrome": {
+  "drug": "Keytruda",
+  "salesM": 31700,
+  "salesYr": "2025",
+  "priceYr": 185000,
+  "approved": "2014"
+ },
+ "Bladder Cancer": {
+  "drug": "Padcev",
+  "salesM": 2200,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2019"
+ },
+ "Endometrial Cancer": {
+  "drug": "Jemperli",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2021"
+ },
+ "Basal Cell Carcinoma": {
+  "drug": "Erivedge",
+  "salesM": 210,
+  "salesYr": "2025",
+  "priceYr": 140000,
+  "approved": "2012"
+ },
+ "Oral Squamous Cell Carcinoma": {
+  "drug": "Erbitux",
+  "salesM": 950,
+  "salesYr": "2025",
+  "priceYr": 120000,
+  "approved": "2004"
+ },
+ "Myelodysplastic Syndromes (MDS)": {
+  "drug": "Vidaza",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 120000,
+  "approved": "2004"
+ },
+ "Acute Myeloid Leukemia (AML)": {
+  "drug": "Venclexta",
+  "salesM": 2800,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2016"
+ },
+ "Acute Lymphoblastic Leukemia (ALL)": {
+  "drug": "Blincyto",
+  "salesM": 1200,
+  "salesYr": "2025",
+  "priceYr": 210000,
+  "approved": "2014"
+ },
+ "Cachexia in Cancer": {
+  "drug": "Megace",
+  "salesM": 45,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1993"
+ },
+ "Hepatocellular Carcinoma": {
+  "drug": "Tecentriq",
+  "salesM": 4600,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2016"
+ },
+ "Stomach Cancer": {
+  "drug": "Enhertu",
+  "salesM": 3800,
+  "salesYr": "2025",
+  "priceYr": 170000,
+  "approved": "2019"
+ },
+ "Ovarian, Fallopian Tube, and Peritoneal Cancer": {
+  "drug": "Lynparza",
+  "salesM": 2900,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2014"
+ },
+ "Oropharyngeal Squamous Cell Carcinoma": {
+  "drug": "Keytruda",
+  "salesM": 31700,
+  "salesYr": "2025",
+  "priceYr": 185000,
+  "approved": "2014"
+ },
+ "Hodgkin Lymphoma": {
+  "drug": "Adcetris",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2011"
+ },
+ "Gliomas": {
+  "drug": "Tibsovo",
+  "salesM": 380,
+  "salesYr": "2025",
+  "priceYr": 300000,
+  "approved": "2018"
+ },
+ "Meningiomas": {
+  "drug": "Hydroxyurea",
+  "salesM": 85,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1967"
+ },
+ "Pancreatic Cancer": {
+  "drug": "Abraxane",
+  "salesM": 750,
+  "salesYr": "2025",
+  "priceYr": 120000,
+  "approved": "2005"
+ },
+ "Cataract": {
+  "drug": "Pred Forte",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1973"
+ },
+ "Blepharitis": {
+  "drug": "Xiidra",
+  "salesM": 420,
+  "salesYr": "2025",
+  "priceYr": 6000,
+  "approved": "2016"
+ },
+ "Hereditary Optic Neuropathies": {
+  "drug": "Raxone",
+  "salesM": 45,
+  "salesYr": "2025",
+  "priceYr": 45000,
+  "approved": "2015"
+ },
+ "Inflammatory Orbital Disease": {
+  "drug": "Tepezza",
+  "salesM": 1900,
+  "salesYr": "2025",
+  "priceYr": 350000,
+  "approved": "2020"
+ },
+ "Age-Related Macular Degeneration (AMD or ARMD)": {
+  "drug": "Eylea",
+  "salesM": 9200,
+  "salesYr": "2025",
+  "priceYr": 11000,
+  "approved": "2011"
+ },
+ "Central Retinal Artery Occlusion and Branch Retinal Artery Occlusion": {
+  "drug": "Lucentis",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 10000,
+  "approved": "2006"
+ },
+ "Diabetic Retinopathy": {
+  "drug": "Eylea",
+  "salesM": 9200,
+  "salesYr": "2025",
+  "priceYr": 11000,
+  "approved": "2011"
+ },
+ "Retinitis Pigmentosa": {
+  "drug": "Luxturna",
+  "salesM": 95,
+  "salesYr": "2025",
+  "priceYr": 850000,
+  "approved": "2017"
+ },
+ "Uveitis Caused by Systemic Rheumatic Disease": {
+  "drug": "Humira",
+  "salesM": 6200,
+  "salesYr": "2025",
+  "priceYr": 84000,
+  "approved": "2002"
+ },
+ "Down Syndrome (Trisomy 21)": {
+  "drug": "Donepezil",
+  "salesM": 110,
+  "salesYr": "2025",
+  "priceYr": 300,
+  "approved": "1996"
+ },
+ "Fragile X Syndrome": {
+  "drug": "Arbaclofen",
+  "salesM": 45,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "2010"
+ },
+ "Osteochondrodysplasias (Osteochondrodysplastic Dwarfism)": {
+  "drug": "Voxzogo",
+  "salesM": 880,
+  "salesYr": "2025",
+  "priceYr": 330000,
+  "approved": "2021"
+ },
+ "Cystic Fibrosis": {
+  "drug": "Trikafta",
+  "salesM": 10200,
+  "salesYr": "2025",
+  "priceYr": 326000,
+  "approved": "2019"
+ },
+ "Gaucher Disease": {
+  "drug": "Vpriv",
+  "salesM": 420,
+  "salesYr": "2025",
+  "priceYr": 300000,
+  "approved": "2010"
+ },
+ "Metachromatic Leukodystrophy": {
+  "drug": "Lenmeldy",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 4250000,
+  "approved": "2024"
+ },
+ "Duchenne Muscular Dystrophy and Becker Muscular Dystrophy": {
+  "drug": "Elevidys",
+  "salesM": 1850,
+  "salesYr": "2025",
+  "priceYr": 3200000,
+  "approved": "2023"
+ },
+ "Facioscapulohumeral Muscular Dystrophy": {
+  "drug": "Prednisone",
+  "salesM": 200,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1955"
+ },
+ "Limb-Girdle Dystrophy": {
+  "drug": "Deflazacort",
+  "salesM": 220,
+  "salesYr": "2025",
+  "priceYr": 35000,
+  "approved": "2017"
+ },
+ "Attention-Deficit/Hyperactivity Disorder (ADHD)": {
+  "drug": "Vyvanse",
+  "salesM": 2100,
+  "salesYr": "2025",
+  "priceYr": 4500,
+  "approved": "2007"
+ },
+ "Autism Spectrum Disorder": {
+  "drug": "Abilify",
+  "salesM": 1100,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "2002"
+ },
+ "Intellectual Disability": {
+  "drug": "Risperdal",
+  "salesM": 450,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "1993"
+ },
+ "Hearing Impairment in Children": {
+  "drug": "Amoxicillin",
+  "salesM": 350,
+  "salesYr": "2025",
+  "priceYr": 50,
+  "approved": "1974"
+ },
+ "Neurofibromatosis": {
+  "drug": "Koselugo",
+  "salesM": 540,
+  "salesYr": "2025",
+  "priceYr": 180000,
+  "approved": "2020"
+ },
+ "Tuberous Sclerosis Complex (TSC)": {
+  "drug": "Afinitor",
+  "salesM": 850,
+  "salesYr": "2025",
+  "priceYr": 160000,
+  "approved": "2009"
+ },
+ "Cerebral Palsy (CP)": {
+  "drug": "Botox",
+  "salesM": 4200,
+  "salesYr": "2025",
+  "priceYr": 3000,
+  "approved": "1989"
+ },
+ "Acute and Posttraumatic Stress Disorders (ASD and PTSD) in Children and Adolescents": {
+  "drug": "Zoloft",
+  "salesM": 520,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1991"
+ },
+ "Depressive Disorders in Children and Adolescents": {
+  "drug": "Prozac",
+  "salesM": 410,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1987"
+ },
+ "Wheezing and Asthma in Infants and Young Children": {
+  "drug": "Pulmicort",
+  "salesM": 820,
+  "salesYr": "2025",
+  "priceYr": 1500,
+  "approved": "1997"
+ },
+ "Acute Stress Disorder": {
+  "drug": "Xanax",
+  "salesM": 310,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1981"
+ },
+ "Posttraumatic Stress Disorder (PTSD)": {
+  "drug": "Paxil",
+  "salesM": 280,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1992"
+ },
+ "Anorexia Nervosa": {
+  "drug": "Zyprexa",
+  "salesM": 380,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "1996"
+ },
+ "Bipolar Disorders": {
+  "drug": "Vraylar",
+  "salesM": 3400,
+  "salesYr": "2025",
+  "priceYr": 16000,
+  "approved": "2015"
+ },
+ "Depressive Disorders": {
+  "drug": "Lexapro",
+  "salesM": 650,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "2002"
+ },
+ "Obsessive-Compulsive Disorder (OCD)": {
+  "drug": "Luvox",
+  "salesM": 120,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1994"
+ },
+ "Opioid Use Disorder": {
+  "drug": "Sublocade",
+  "salesM": 850,
+  "salesYr": "2025",
+  "priceYr": 22000,
+  "approved": "2017"
+ },
+ "Borderline Personality Disorder (BPD)": {
+  "drug": "Seroquel",
+  "salesM": 300,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "1997"
+ },
+ "Schizophrenia": {
+  "drug": "Invega Sustenna",
+  "salesM": 4100,
+  "salesYr": "2025",
+  "priceYr": 14000,
+  "approved": "2009"
+ },
+ "Suicidal Behavior": {
+  "drug": "Clozaril",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 1500,
+  "approved": "1989"
+ },
+ "Asthma": {
+  "drug": "Dupixent",
+  "salesM": 16100,
+  "salesYr": "2025",
+  "priceYr": 40000,
+  "approved": "2017"
+ },
+ "Bronchiectasis": {
+  "drug": "Tobramycin",
+  "salesM": 210,
+  "salesYr": "2025",
+  "priceYr": 12000,
+  "approved": "1997"
+ },
+ "Alpha-1 Antitrypsin Deficiency": {
+  "drug": "Prolastin-C",
+  "salesM": 480,
+  "salesYr": "2025",
+  "priceYr": 100000,
+  "approved": "1987"
+ },
+ "Chronic Obstructive Pulmonary Disease (COPD)": {
+  "drug": "Trelegy Ellipta",
+  "salesM": 3800,
+  "salesYr": "2025",
+  "priceYr": 8400,
+  "approved": "2017"
+ },
+ "Idiopathic Pulmonary Fibrosis (IPF)": {
+  "drug": "Ofev",
+  "salesM": 3900,
+  "salesYr": "2025",
+  "priceYr": 130000,
+  "approved": "2014"
+ },
+ "Pneumonia in Immunocompromised Patients": {
+  "drug": "Bactrim",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1973"
+ },
+ "Pulmonary Hypertension": {
+  "drug": "Uptravi",
+  "salesM": 1700,
+  "salesYr": "2025",
+  "priceYr": 220000,
+  "approved": "2015"
+ },
+ "Obstructive Sleep Apnea (OSA)": {
+  "drug": "Zepbound",
+  "salesM": 13500,
+  "salesYr": "2025",
+  "priceYr": 13000,
+  "approved": "2023"
+ },
+ "Fibromyalgia": {
+  "drug": "Lyrica",
+  "salesM": 450,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "2004"
+ },
+ "Gout": {
+  "drug": "Krystexxa",
+  "salesM": 1300,
+  "salesYr": "2025",
+  "priceYr": 120000,
+  "approved": "2010"
+ },
+ "Ankylosing Spondylitis": {
+  "drug": "Cosentyx",
+  "salesM": 6668,
+  "salesYr": "2025",
+  "priceYr": 75000,
+  "approved": "2015"
+ },
+ "Osteoarthritis (OA)": {
+  "drug": "Celebrex",
+  "salesM": 520,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "1998"
+ },
+ "Psoriatic Arthritis": {
+  "drug": "Cosentyx",
+  "salesM": 6668,
+  "salesYr": "2025",
+  "priceYr": 75000,
+  "approved": "2015"
+ },
+ "Rheumatoid Arthritis (RA)": {
+  "drug": "Humira",
+  "salesM": 6200,
+  "salesYr": "2025",
+  "priceYr": 84000,
+  "approved": "2002"
+ },
+ "Osteoporosis": {
+  "drug": "Prolia",
+  "salesM": 4300,
+  "salesYr": "2025",
+  "priceYr": 3800,
+  "approved": "2010"
+ },
+ "Sjögren Syndrome": {
+  "drug": "Evoxac",
+  "salesM": 85,
+  "salesYr": "2025",
+  "priceYr": 1200,
+  "approved": "2000"
+ },
+ "Systemic Lupus Erythematosus (SLE)": {
+  "drug": "Benlysta",
+  "salesM": 1850,
+  "salesYr": "2025",
+  "priceYr": 48000,
+  "approved": "2011"
+ },
+ "Systemic Sclerosis": {
+  "drug": "Ofev",
+  "salesM": 3900,
+  "salesYr": "2025",
+  "priceYr": 130000,
+  "approved": "2014"
+ },
+ "Giant Cell Arteritis": {
+  "drug": "Actemra",
+  "salesM": 3100,
+  "salesYr": "2025",
+  "priceYr": 42000,
+  "approved": "2010"
+ },
+ "Chronic Fatigue Syndrome": {
+  "drug": "Low-Dose Naltrexone",
+  "salesM": 25,
+  "salesYr": "2025",
+  "priceYr": 500,
+  "approved": "N/A"
+ },
+ "Alcohol Use Disorder and Rehabilitation": {
+  "drug": "Vivitrol",
+  "salesM": 420,
+  "salesYr": "2025",
+  "priceYr": 18000,
+  "approved": "2006"
+ },
+ "Smoking and Other Tobacco Use": {
+  "drug": "Chantix",
+  "salesM": 180,
+  "salesYr": "2025",
+  "priceYr": 1500,
+  "approved": "2006"
+ },
+ "Benign Prostatic Hyperplasia": {
+  "drug": "Flomax",
+  "salesM": 350,
+  "salesYr": "2025",
+  "priceYr": 200,
+  "approved": "1997"
+ },
+ "Prostatitis": {
+  "drug": "Cipro",
+  "salesM": 220,
+  "salesYr": "2025",
+  "priceYr": 100,
+  "approved": "1987"
+ },
+ "Peyronie Disease": {
+  "drug": "Xiaflex",
+  "salesM": 510,
+  "salesYr": "2025",
+  "priceYr": 28000,
+  "approved": "2010"
+ },
+ "Urethral Stricture": {
+  "drug": "Triamcinolone",
+  "salesM": 45,
+  "salesYr": "2025",
+  "priceYr": 150,
+  "approved": "1958"
+ },
+ "Urinary Calculi": {
+  "drug": "Urocit-K",
+  "salesM": 85,
+  "salesYr": "2025",
+  "priceYr": 600,
+  "approved": "1985"
+ },
+ "Interstitial Cystitis": {
+  "drug": "Elmiron",
+  "salesM": 110,
+  "salesYr": "2025",
+  "priceYr": 3600,
+  "approved": "1996"
+ },
+ "Urinary Incontinence in Adults": {
+  "drug": "Myrbetriq",
+  "salesM": 2100,
+  "salesYr": "2025",
+  "priceYr": 6000,
+  "approved": "2012"
+ }
+};
 const PEAK_SALES_YES = {
  "Acute Heart Failure": 1,
  "Acute Stress Disorder": 1,
@@ -24756,11 +26618,32 @@ function nbSimpleRowHtml(ta,key){
   const split=nbSplitSocText(r.cause);
   const bar=(typeof BAR_OVERRIDE!=='undefined'?BAR_OVERRIDE[r.indication]:'')||'';
   const endpoint=nbFormatEndpoint(split.drug, split.moa, bar);
-  const market = r.usvol ? `${fmtCount(r.usvol)} ${nbPrevalenceLabel(r.indication)} \u00d7 ${fmtPrice(r.price)}/yr = ${fmtTAM(r.tam)} TAM` : '\u2014';
+  // Calculated live as prevalence × price only (no eligibility%), so the two-term equation
+  // shown here is internally consistent. This intentionally differs from r.tam (the stored,
+  // eligibility-adjusted TAM shown elsewhere in the notebook) - that's expected, not a bug.
+  const calcTamM = r.usvol && r.price ? (r.usvol * r.price) / 1e6 : null;
+  let marketHtml;
+  if(r.usvol){
+    const tamStr = fmtTAM(calcTamM);
+    marketHtml = `${esc(fmtCount(r.usvol))} ${esc(nbPrevalenceLabel(r.indication))} \u00d7 ${esc(fmtPrice(r.price))}/yr = <span class="nb-hl">${esc(tamStr)}</span> TAM`;
+  } else {
+    marketHtml = '\u2014';
+  }
+  const bs = (typeof BEST_SELLER!=='undefined' ? BEST_SELLER[r.indication] : null);
+  let bsLine = '';
+  if(bs){
+    const pts = bs.priceYr ? (bs.salesM*1e6)/bs.priceYr : 0;
+    const ptsTxt = pts>=1000 ? Math.round(pts/1000)+'K' : Math.round(pts).toLocaleString();
+    const salesStr = fmtTAM(bs.salesM);
+    const bsHtml = `${esc(bs.drug)} (<span class="nb-hl">${esc(salesStr)}</span> in ${esc(bs.salesYr)} / ${esc(fmtPrice(bs.priceYr))}/yr = ${esc(ptsTxt)} pts, appr. in ${esc(bs.approved)})`;
+    bsLine = `<div class="nb-srow-f nb-srow-wide"><span class="nb-srow-v">${bsHtml}</span></div>`;
+  }
+  const endpointHtml = nbHighlightSubstr(endpoint, ENDPOINT_HIGHLIGHT[r.indication]);
   return `<div class="nb-srow" data-key="${escAttr(key)}">
     <div class="nb-srow-name">${esc(r.indication)}</div>
-    <div class="nb-srow-f nb-srow-wide"><span class="nb-srow-v">${esc(market)}</span></div>
-    <div class="nb-srow-f nb-srow-wide"><span class="nb-srow-v">${esc(endpoint)}</span></div>
+    <div class="nb-srow-f nb-srow-wide"><span class="nb-srow-v">${marketHtml}</span></div>
+    ${bsLine}
+    <div class="nb-srow-f nb-srow-wide"><span class="nb-srow-v">${endpointHtml}</span></div>
   </div>`;
 }
 function nbModuleHtml(ta){
