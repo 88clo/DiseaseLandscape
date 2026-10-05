@@ -574,6 +574,11 @@ mark{background:oklch(from var(--accent) l c h/0.2);color:inherit;border-radius:
 .nb-srow-wide{grid-column:1/-1}
 .nb-srow-k{font-size:0.6rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.03em}
 .nb-unmet-row{display:flex;flex-wrap:wrap;align-items:center;gap:0.3rem 0.5rem}
+.nb-unmet-row{background:#fff1e0;border:1px solid #f5c48a;border-radius:6px;padding:0.3rem 0.55rem}
+.nb-unmet-row .nb-ranked-inline{flex:1 1 0;min-width:0}
+.nb-unmet-lbl{flex:none;font-size:0.72rem;font-weight:800;color:#b45f06;white-space:nowrap}
+[data-theme="dark"] .nb-unmet-row{background:rgba(245,166,80,0.12);border-color:rgba(245,166,80,0.45)}
+[data-theme="dark"] .nb-unmet-lbl{color:#f0b070}
 .nb-ranked-inline{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.3rem 0.4rem;font-size:0.78rem;color:var(--text)}
 .nb-ranked-item{white-space:nowrap}
 .nb-ranked-sep{color:var(--faint);margin-right:0.4rem}
@@ -13242,7 +13247,7 @@ function nbDownloadSimpleSnapshot(){
       +'<body><div id="notebook" style="display:block">'
       +(chartSvg ? '<div class="nb-chart-legend"><span class="cl cl-tam">Total US TAM</span><span class="cl cl-ind">Indications</span></div><div id="nb-chart" class="nb-chart">'+chartSvg+'</div>' : '')
       +'<div id="notebook-body">'+clone.innerHTML+'</div>'
-      +'</div></body></html>';
+      +'</div><script>function nbScrollToTA(ta){var cs=document.querySelectorAll("#notebook .nb-card");for(var i=0;i<cs.length;i++){var c=cs[i];if(c.getAttribute("data-ta")===ta){c.scrollIntoView({behavior:"smooth",block:"start"});c.classList.add("nb-flash");(function(c){setTimeout(function(){c.classList.remove("nb-flash")},1300)})(c);break;}}}<\/script></body></html>';
     const blob=new Blob([html],{type:'text/html'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
@@ -13386,7 +13391,8 @@ function nbSimpleRowHtml(ta,key){
   const rankedInline = (rankedList && rankedList.length)
     ? `<span class="nb-ranked-inline">${rankedList.map(item=>`<span class="nb-ranked-item">${esc(item)}</span>`).join('<span class="nb-ranked-sep">|</span>')}</span>`
     : '';
-  const unmetLine = (nbShowUnmet && (unmetBadge || rankedInline)) ? `<div class="nb-srow-f nb-srow-wide"><div class="nb-unmet-row">${unmetBadge}${rankedInline}</div></div>` : '';
+  const shownBadge = nbShowUnmet ? unmetBadge : '';
+  const unmetLine = (shownBadge || rankedInline) ? `<div class="nb-srow-f nb-srow-wide"><div class="nb-unmet-row">${rankedInline?'<span class="nb-unmet-lbl">Unmet need:</span>':''}${shownBadge}${rankedInline}</div></div>` : '';
   // Not-an-attractive-new-drug-market flag (badge), shared with the full-view "unattractive" concept.
   const isUnattr = nbUnattractive(r) || nbForceUnattractive(r);
   const unattrReason = isUnattr ? nbUnattractiveReason(r) : '';
